@@ -5,6 +5,13 @@ Rect :: struct {
 	width, height: f32,
 }
 
+// Rect contains the point (pt), using a half-open rectangle to avoid double-hits
+// on shared edges
+rect_contains :: proc(r: Rect, pt: [2]f32) -> bool {
+	assert(r.width > 0 && r.height > 0, "Rect must have positive width & height")
+	return pt.x >= r.x && pt.y >= r.y && pt.x < r.x + r.width && pt.y < r.y + r.height
+}
+
 rect_cut :: proc(r: Rect, c: Cut) -> (Rect, Rect) {
 	assert(r.width > 0 && r.height > 0, "Rect must have non-zero area to cut")
 

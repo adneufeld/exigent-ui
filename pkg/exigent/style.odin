@@ -7,12 +7,28 @@ Style :: struct {
 
 Color :: [3]u8
 
+// Blend t percent of c2 into c1. This function uses float math so could be
+// faster.
+color_blend :: proc(c1, c2: Color, t: f32) -> (cb: Color) {
+	assert(t >= 0 && t <= 1.0, "t must be a value from 0 and 1 (inclusive)")
+	cb.r = u8(f32(c1.r) + (f32(c2.r) - f32(c1.r)) * t + 0.5)
+	cb.g = u8(f32(c1.g) + (f32(c2.g) - f32(c1.g)) * t + 0.5)
+	cb.b = u8(f32(c1.b) + (f32(c2.b) - f32(c1.b)) * t + 0.5)
+	return cb
+}
+
 Color_Type :: distinct string
 Color_Type_BACKGROUND :: Color_Type("background")
+Color_Type_BACKGROUND_FOCUSED :: Color_Type("background_focused")
 
 style_default_init :: proc(style: ^Style, allocator := context.allocator) {
-	style.colors = map[Color_Type]Color{}
+	style.colors = make(map[Color_Type]Color, allocator)
 	style.colors[Color_Type_BACKGROUND] = Color{128, 128, 128}
+	style.colors[Color_Type_BACKGROUND_FOCUSED] = color_blend(
+		style.colors[Color_Type_BACKGROUND],
+		Color{255, 255, 255},
+		0.3,
+	)
 }
 
 style_push :: proc(c: ^Context) {
@@ -27,9 +43,37 @@ style_set_color :: proc(c: ^Context, ct: Color_Type, color: Color) {
 	c.style_stack[len(c.style_stack) - 1].colors[ct] = color
 }
 
+style_get_color :: proc(c: ^Context, ct: Color_Type) -> Color {
+	for s in c.style_stack {
+		if c, found := s.colors[ct]; found {
+			return c
+		}
+	}
+	panic("could not find Colour_Type in style_stack during style_get_color")
+}
+
 style_pop :: proc(c: ^Context) {
 	assert(len(c.style_stack) > 1)
 	pop(&c.style_stack)
+}
+
+// Check whether a specific style Color_Type has been overriden by the caller.
+// This is useful for widget internals which don't want to override if the
+// caller already has done so.
+style_has_override :: proc(c: ^Context, ct: Color_Type) -> bool {
+	if len(c.style_stack) <= 1 {
+		return false
+	}
+
+	// iterate all style overrides (not [0]) to see if the Color_Type is there
+	for i in 0 ..< len(c.style_stack) - 1 {
+		s := c.style_stack[i]
+		if _, found := s.colors[ct]; found {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Produces a flattened copy of the style stack for use in a widget

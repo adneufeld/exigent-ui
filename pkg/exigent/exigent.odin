@@ -12,6 +12,7 @@ Context :: struct {
 	input_prev, input_curr:      ^Input,
 	widget_stack:                [dynamic]^Widget,
 	style_stack:                 [dynamic]Style,
+	widget_focus_key:            Maybe(Widget_Key),
 	// temp data
 	temp_allocator:              mem.Allocator,
 	widget_root, widget_curr:    ^Widget,
@@ -27,7 +28,6 @@ context_init :: proc(
 	c.perm_allocator = perm_allocator
 
 	c.widget_stack.allocator = c.perm_allocator
-
 	c.input_prev = input_create(key_min_index, key_max_index, c.perm_allocator)
 	c.input_curr = input_create(key_min_index, key_max_index, c.perm_allocator)
 	c.style_stack.allocator = c.perm_allocator
@@ -51,7 +51,8 @@ context_destroy :: proc(c: ^Context) {
 begin :: proc(c: ^Context, screen_width, screen_height: int) {
 	c.screen_width = screen_width
 	c.screen_height = screen_height
-	c.widget_root, c.widget_curr = nil, nil
+	c.widget_root = nil
+	c.widget_curr = nil
 	c.num_widgets = 0
 	c.is_building = true
 }
@@ -62,6 +63,8 @@ end :: proc(c: ^Context) {
 
 	c.is_building = false
 	input_swap(c)
+	focus, found := widget_pick(c.widget_root, c.input_curr.mouse_pos)
+	c.widget_focus_key = focus.key if found else nil
 	clear(&c.widget_stack)
 }
 
@@ -98,6 +101,11 @@ cmd_iterator_create :: proc(
 		if .DrawBackground in next.flags {
 			assert(Color_Type_BACKGROUND in next.style.colors)
 			color := next.style.colors[Color_Type_BACKGROUND]
+			append(&ci.queued, Command_Rect{rect = next.rect, color = color, alpha = next.alpha})
+		}
+		if .DrawBackgroundFocused in next.flags {
+			assert(Color_Type_BACKGROUND_FOCUSED in next.style.colors)
+			color := next.style.colors[Color_Type_BACKGROUND_FOCUSED]
 			append(&ci.queued, Command_Rect{rect = next.rect, color = color, alpha = next.alpha})
 		}
 	}

@@ -246,3 +246,74 @@ test_rect_inset :: proc(t: ^testing.T) {
 		)
 	}
 }
+
+@(test)
+test_rect_contains :: proc(t: ^testing.T) {
+	TestCase :: struct {
+		desc:     string,
+		r:        Rect,
+		pt:       [2]f32,
+		expected: bool,
+	}
+
+	cases := []TestCase {
+		{desc = "point inside", r = Rect{0, 0, 10, 10}, pt = {5, 5}, expected = true},
+		{desc = "point on top-left corner", r = Rect{0, 0, 10, 10}, pt = {0, 0}, expected = true},
+		{desc = "point on top edge", r = Rect{0, 0, 10, 10}, pt = {5, 0}, expected = true},
+		{desc = "point on left edge", r = Rect{0, 0, 10, 10}, pt = {0, 5}, expected = true},
+		{
+			desc = "point on bottom-right corner (exclusive)",
+			r = Rect{0, 0, 10, 10},
+			pt = {10, 10},
+			expected = false,
+		},
+		{
+			desc = "point on bottom edge (exclusive)",
+			r = Rect{0, 0, 10, 10},
+			pt = {5, 10},
+			expected = false,
+		},
+		{
+			desc = "point on right edge (exclusive)",
+			r = Rect{0, 0, 10, 10},
+			pt = {10, 5},
+			expected = false,
+		},
+		{desc = "point outside (left)", r = Rect{0, 0, 10, 10}, pt = {-1, 5}, expected = false},
+		{desc = "point outside (right)", r = Rect{0, 0, 10, 10}, pt = {11, 5}, expected = false},
+		{desc = "point outside (top)", r = Rect{0, 0, 10, 10}, pt = {5, -1}, expected = false},
+		{desc = "point outside (bottom)", r = Rect{0, 0, 10, 10}, pt = {5, 11}, expected = false},
+		{
+			desc = "negative coordinates, point inside",
+			r = Rect{-20, -20, 10, 10},
+			pt = {-15, -15},
+			expected = true,
+		},
+		{
+			desc = "negative coordinates, point on top-left",
+			r = Rect{-20, -20, 10, 10},
+			pt = {-20, -20},
+			expected = true,
+		},
+		{
+			desc = "negative coordinates, point on bottom-right (exclusive)",
+			r = Rect{-20, -20, 10, 10},
+			pt = {-10, -10},
+			expected = false,
+		},
+	}
+
+	for c in cases {
+		result := rect_contains(c.r, c.pt)
+		testing.expectf(
+			t,
+			result == c.expected,
+			"\n%s\nexpected: %v,\nactual: %v\nrect: %v, pt: %v",
+			c.desc,
+			c.expected,
+			result,
+			c.r,
+			c.pt,
+		)
+	}
+}

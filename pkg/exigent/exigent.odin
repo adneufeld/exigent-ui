@@ -41,9 +41,7 @@ context_init :: proc(
 context_destroy :: proc(c: ^Context) {
 	context.allocator = c.perm_allocator
 	input_destroy(c.input_prev)
-	free(c.input_prev)
 	input_destroy(c.input_curr)
-	free(c.input_curr)
 	delete(c.widget_stack)
 	delete(c.style_stack)
 }
@@ -100,12 +98,12 @@ cmd_iterator_create :: proc(
 
 		if .DrawBackground in next.flags {
 			assert(Color_Type_BACKGROUND in next.style.colors)
-			color := next.style.colors[Color_Type_BACKGROUND]
-			append(&ci.queued, Command_Rect{rect = next.rect, color = color, alpha = next.alpha})
-		}
-		if .DrawBackgroundFocused in next.flags {
-			assert(Color_Type_BACKGROUND_FOCUSED in next.style.colors)
-			color := next.style.colors[Color_Type_BACKGROUND_FOCUSED]
+			color: Color = next.style.colors[Color_Type_BACKGROUND]
+			if next.interaction.down {
+				color = next.style.colors[Color_Type_BACKGROUND_ACTIVE]
+			} else if next.interaction.focused {
+				color = next.style.colors[Color_Type_BACKGROUND_FOCUSED]
+			}
 			append(&ci.queued, Command_Rect{rect = next.rect, color = color, alpha = next.alpha})
 		}
 	}

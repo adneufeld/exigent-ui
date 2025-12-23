@@ -3,14 +3,17 @@ package exigent
 import ba "core:container/bit_array"
 
 Input :: struct {
-	mouse_pos:      [2]f32,
-	key_down:       ba.Bit_Array,
-	mouse_down:     bit_set[Mouse_Button],
+	mouse_pos:     [2]f32,
+	key_down:      ba.Bit_Array,
+	mouse_down:    bit_set[Mouse_Button],
 	// cleared at end of frame since it is based on comparison with last frame
-	key_pressed:    ba.Bit_Array,
-	key_released:   ba.Bit_Array,
-	mouse_pressed:  bit_set[Mouse_Button],
-	mouse_released: bit_set[Mouse_Button],
+	key_pressed:   ba.Bit_Array,
+	key_released:  ba.Bit_Array,
+	mouse_pressed: bit_set[Mouse_Button],
+	// TODO: Set when mouse_up occurs inside a widget. However one limitation
+	// currently is that we don't assert that the mouse_down occurred within
+	// the same widget, which is a common expected pattern.
+	mouse_clicked: bit_set[Mouse_Button],
 }
 
 Mouse_Button :: enum {
@@ -54,7 +57,7 @@ input_swap :: proc(c: ^Context) {
 	ba.clear(&c.input_curr.key_pressed)
 	ba.clear(&c.input_curr.key_released)
 	c.input_curr.mouse_pressed = {}
-	c.input_curr.mouse_released = {}
+	c.input_curr.mouse_clicked = {}
 
 }
 
@@ -107,21 +110,21 @@ input_mouse_down :: proc(c: ^Context, btn: Mouse_Button) {
 input_mouse_up :: proc(c: ^Context, btn: Mouse_Button) {
 	c.input_curr.mouse_down -= {btn}
 	c.input_curr.mouse_pressed -= {btn}
-	c.input_curr.mouse_released += {btn}
+	c.input_curr.mouse_clicked += {btn}
 }
 
 input_is_mouse_down :: proc(c: ^Context, btn: Mouse_Button) -> bool {
 	return btn in c.input_curr.mouse_down
 }
 
-// Whether the mouse button was released this exact frame
-input_is_mouse_released :: proc(c: ^Context, btn: Mouse_Button) -> bool {
-	return btn in c.input_curr.mouse_released
-}
-
 // Whether the mouse button was pressed down this exact frame
 input_is_mouse_pressed :: proc(c: ^Context, btn: Mouse_Button) -> bool {
 	return btn in c.input_curr.mouse_pressed
+}
+
+// Whether the mouse button was released inside the focused widget this exact frame
+input_is_mouse_clicked :: proc(c: ^Context, btn: Mouse_Button) -> bool {
+	return btn in c.input_curr.mouse_clicked
 }
 
 Key_Down_Iterator :: struct {

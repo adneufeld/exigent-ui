@@ -1,10 +1,12 @@
 package demo
 
 import ui "../pkg/exigent"
+import "core:fmt"
 import rl "vendor:raylib"
 
 UI_ID :: enum uint {
 	PANEL,
+	BUTTON,
 }
 
 main :: proc() {
@@ -40,19 +42,19 @@ main :: proc() {
 		if rl.IsMouseButtonDown(.LEFT) {
 			ui.input_mouse_down(ctx, .Left)
 		}
-		if rl.IsMouseButtonDown(.LEFT) {
+		if rl.IsMouseButtonReleased(.LEFT) {
 			ui.input_mouse_up(ctx, .Left)
 		}
 		if rl.IsMouseButtonDown(.RIGHT) {
 			ui.input_mouse_down(ctx, .Right)
 		}
-		if rl.IsMouseButtonDown(.RIGHT) {
+		if rl.IsMouseButtonReleased(.RIGHT) {
 			ui.input_mouse_up(ctx, .Right)
 		}
 		if rl.IsMouseButtonDown(.MIDDLE) {
 			ui.input_mouse_down(ctx, .Middle)
 		}
-		if rl.IsMouseButtonDown(.MIDDLE) {
+		if rl.IsMouseButtonReleased(.MIDDLE) {
 			ui.input_mouse_up(ctx, .Middle)
 		}
 
@@ -62,7 +64,10 @@ main :: proc() {
 		r = ui.rect_inset(r, ui.inset(90))
 		// ui.style_push(ctx)
 		// ui.style_set_color(ctx, ui.Color_Type_BACKGROUND_FOCUSED, ui.Color{0, 255, 0})
-		ui.hover_panel(ctx, ui.key(UI_ID.PANEL), r)
+		// ui.panel(ctx, ui.key(UI_ID.PANEL), r)
+		if ui.button(ctx, ui.key(UI_ID.BUTTON), r).clicked {
+			fmt.printfln("clicked!")
+		}
 		// ui.style_pop(ctx)
 		ui.end(ctx)
 

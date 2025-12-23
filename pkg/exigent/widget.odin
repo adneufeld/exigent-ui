@@ -2,13 +2,14 @@ package exigent
 
 import "base:intrinsics"
 Widget :: struct {
-	key:      Widget_Key,
-	parent:   ^Widget,
-	children: [dynamic]^Widget,
-	rect:     Rect,
-	style:    Style,
-	alpha:    u8,
-	flags:    bit_set[Widget_Flags],
+	key:         Widget_Key,
+	parent:      ^Widget,
+	children:    [dynamic]^Widget,
+	rect:        Rect,
+	style:       Style,
+	alpha:       u8,
+	flags:       bit_set[Widget_Flags],
+	interaction: Widget_Interaction,
 }
 
 // Create a uint enum and give one unique entry per widget
@@ -20,7 +21,6 @@ key :: proc(id: $T) -> Widget_Key where intrinsics.type_is_enum(T) {
 
 Widget_Flags :: enum {
 	DrawBackground,
-	DrawBackgroundFocused,
 }
 
 widget_begin :: proc(c: ^Context, key: Widget_Key, r: Rect) {
@@ -43,6 +43,8 @@ widget_begin :: proc(c: ^Context, key: Widget_Key, r: Rect) {
 	if c.widget_root == nil {
 		c.widget_root = c.widget_curr
 	}
+
+	widget_interaction(c, c.widget_curr)
 }
 
 widget_end :: proc(c: ^Context) {
@@ -82,25 +84,32 @@ widget_pick :: proc(w: ^Widget, mouse_pos: [2]f32) -> (focus: ^Widget, found: bo
 }
 
 Widget_Interaction :: struct {
-	clicked:  bool,
-	hovering: bool,
+	focused: bool, // hovered
+	down:    bool, // held down for one or more frames
+	pressed: bool, // single frame mouse press down
+	clicked: bool, // single frame mouse released inside widget
 }
 
-widget_interaction :: proc(c: ^Context, w: ^Widget) -> (ret: Widget_Interaction) {
+@(private)
+widget_interaction :: proc(c: ^Context, w: ^Widget) {
 	widget_focus_key, ok := c.widget_focus_key.?
 	if ok && c.widget_focus_key == w.key {
-		ret.hovering = true
-		if input_is_mouse_pressed(c, .Left) {
-			ret.clicked = true
-		}
+		w.interaction.focused = true
+		w.interaction.down = input_is_mouse_down(c, .Left)
+		w.interaction.pressed = input_is_mouse_pressed(c, .Left)
+		w.interaction.clicked = input_is_mouse_clicked(c, .Left)
 	}
-	return ret
 }
 
-hover_panel :: proc(c: ^Context, key: Widget_Key, r: Rect) -> Widget_Interaction {
+panel :: proc(c: ^Context, key: Widget_Key, r: Rect) {
 	widget_begin(c, key, r)
-	interact := widget_interaction(c, c.widget_curr)
-	widget_flags(c, {.DrawBackgroundFocused} if interact.hovering else {.DrawBackground})
+	widget_flags(c, {.DrawBackground})
 	widget_end(c)
-	return interact
+}
+
+button :: proc(c: ^Context, key: Widget_Key, r: Rect) -> Widget_Interaction {
+	widget_begin(c, key, r)
+	widget_flags(c, {.DrawBackground})
+	widget_end(c)
+	return c.widget_curr.interaction
 }

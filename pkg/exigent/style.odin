@@ -6,6 +6,8 @@ Style :: struct {
 }
 
 Color :: [3]u8
+WHITE :: Color{255, 255, 255}
+BLACK :: Color{0, 0, 0}
 
 // Blend t percent of c2 into c1. This function uses float math so could be
 // faster.
@@ -19,14 +21,21 @@ color_blend :: proc(c1, c2: Color, t: f32) -> (cb: Color) {
 
 Color_Type :: distinct string
 Color_Type_BACKGROUND :: Color_Type("background")
-Color_Type_BACKGROUND_FOCUSED :: Color_Type("background_focused")
+Color_Type_BACKGROUND_FOCUSED :: Color_Type("background_focused") // ex. hovered
+Color_Type_BACKGROUND_ACTIVE :: Color_Type("background_active") // ex. clicked
 
 style_default_init :: proc(style: ^Style, allocator := context.allocator) {
 	style.colors = make(map[Color_Type]Color, allocator)
+
 	style.colors[Color_Type_BACKGROUND] = Color{128, 128, 128}
 	style.colors[Color_Type_BACKGROUND_FOCUSED] = color_blend(
 		style.colors[Color_Type_BACKGROUND],
-		Color{255, 255, 255},
+		WHITE,
+		0.3,
+	)
+	style.colors[Color_Type_BACKGROUND_ACTIVE] = color_blend(
+		style.colors[Color_Type_BACKGROUND],
+		BLACK,
 		0.3,
 	)
 }

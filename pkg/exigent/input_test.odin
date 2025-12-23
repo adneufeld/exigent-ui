@@ -164,7 +164,7 @@ test_mouse_up_sets_released_state :: proc(t: ^testing.T) {
 	input_mouse_up(c, .Left)
 	testing.expect(
 		t,
-		input_is_mouse_released(c, .Left),
+		input_is_mouse_clicked(c, .Left),
 		"Mouse button should be released after input_mouse_up",
 	)
 }
@@ -201,7 +201,7 @@ test_all_mouse_buttons :: proc(t: ^testing.T) {
 			"Button %v should not be down after up",
 			btn,
 		)
-		testing.expectf(t, input_is_mouse_released(c, btn), "Button %v should be released", btn)
+		testing.expectf(t, input_is_mouse_clicked(c, btn), "Button %v should be released", btn)
 	}
 }
 
@@ -224,8 +224,8 @@ test_multiple_mouse_buttons_independent :: proc(t: ^testing.T) {
 	testing.expect(t, input_is_mouse_down(c, .Right), "Right button should still be down")
 	testing.expect(t, !input_is_mouse_pressed(c, .Left), "Left button should not be pressed")
 	testing.expect(t, input_is_mouse_pressed(c, .Right), "Right button should still be pressed")
-	testing.expect(t, input_is_mouse_released(c, .Left), "Left button should be released")
-	testing.expect(t, !input_is_mouse_released(c, .Right), "Right button should not be released")
+	testing.expect(t, input_is_mouse_clicked(c, .Left), "Left button should be released")
+	testing.expect(t, !input_is_mouse_clicked(c, .Right), "Right button should not be released")
 }
 
 @(test)
@@ -333,14 +333,14 @@ test_swap_clears_mouse_released_state :: proc(t: ^testing.T) {
 	input_mouse_up(c, .Left)
 	testing.expect(
 		t,
-		input_is_mouse_released(c, .Left),
+		input_is_mouse_clicked(c, .Left),
 		"Mouse button should be released before swap",
 	)
 
 	input_swap(c)
 	testing.expect(
 		t,
-		!input_is_mouse_released(c, .Left),
+		!input_is_mouse_clicked(c, .Left),
 		"Mouse button should not be released after swap",
 	)
 }
@@ -503,20 +503,20 @@ test_mouse_click_sequence :: proc(t: ^testing.T) {
 	input_mouse_down(c, .Left)
 	testing.expect(t, input_is_mouse_pressed(c, .Left), "Frame 1: pressed=true")
 	testing.expect(t, input_is_mouse_down(c, .Left), "Frame 1: down=true")
-	testing.expect(t, !input_is_mouse_released(c, .Left), "Frame 1: released=false")
+	testing.expect(t, !input_is_mouse_clicked(c, .Left), "Frame 1: released=false")
 
 	// Frame 2: Hold
 	input_swap(c)
 	input_mouse_down(c, .Left)
 	testing.expect(t, !input_is_mouse_pressed(c, .Left), "Frame 2: pressed=false")
 	testing.expect(t, input_is_mouse_down(c, .Left), "Frame 2: down=true")
-	testing.expect(t, !input_is_mouse_released(c, .Left), "Frame 2: released=false")
+	testing.expect(t, !input_is_mouse_clicked(c, .Left), "Frame 2: released=false")
 
 	// Frame 3: Release
 	input_mouse_up(c, .Left)
 	testing.expect(t, !input_is_mouse_pressed(c, .Left), "Frame 3: pressed=false")
 	testing.expect(t, !input_is_mouse_down(c, .Left), "Frame 3: down=false")
-	testing.expect(t, input_is_mouse_released(c, .Left), "Frame 3: released=true")
+	testing.expect(t, input_is_mouse_clicked(c, .Left), "Frame 3: released=true")
 }
 
 @(test)
@@ -555,7 +555,7 @@ test_simultaneous_inputs :: proc(t: ^testing.T) {
 	testing.expect(t, !input_is_mouse_pressed(c, .Left), "Mouse Left not pressed after swap")
 	testing.expect(t, !input_is_mouse_pressed(c, .Right), "Mouse Right not pressed after swap")
 	testing.expect(t, input_is_key_released(c, 65), "Key 65 released")
-	testing.expect(t, input_is_mouse_released(c, .Left), "Mouse Left released")
+	testing.expect(t, input_is_mouse_clicked(c, .Left), "Mouse Left released")
 }
 
 @(test)
@@ -613,7 +613,7 @@ test_release_unpressed_mouse_button :: proc(t: ^testing.T) {
 	testing.expect(t, !input_is_mouse_down(c, .Left), "Unpressed mouse button should not be down")
 	testing.expect(
 		t,
-		input_is_mouse_released(c, .Left),
+		input_is_mouse_clicked(c, .Left),
 		"Unpressed mouse button should be released",
 	)
 	testing.expect(

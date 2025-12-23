@@ -38,6 +38,7 @@ input_destroy :: proc(i: ^Input, allocator := context.allocator) {
 	ba.destroy(&i.key_down)
 	ba.destroy(&i.key_pressed)
 	ba.destroy(&i.key_released)
+	free(i, allocator)
 }
 
 @(private)

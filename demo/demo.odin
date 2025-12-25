@@ -87,11 +87,25 @@ main :: proc() {
 				break draw_ui
 			case ui.Command_Rect:
 				rl_color := rl.Color{c.color.r, c.color.g, c.color.b, c.alpha}
-				rl.DrawRectangleV(
-					rl.Vector2{c.rect.x, c.rect.y},
-					rl.Vector2{c.rect.width, c.rect.height},
-					rl_color,
-				)
+				switch c.border_style {
+				case .None:
+					rl.DrawRectangleV(
+						rl.Vector2{c.rect.x, c.rect.y},
+						rl.Vector2{c.rect.width, c.rect.height},
+						rl_color,
+					)
+				case .Square:
+					rl.DrawRectangleV(
+						rl.Vector2{c.rect.x, c.rect.y},
+						rl.Vector2{c.rect.width, c.rect.height},
+						rl_color,
+					)
+					rl.DrawRectangleLinesEx(
+						rl.Rectangle{c.rect.x, c.rect.y, c.rect.width, c.rect.height},
+						f32(c.border_thickness),
+						rl.Color{c.border_color.r, c.border_color.g, c.border_color.b, c.alpha},
+					)
+				}
 			}
 		}
 

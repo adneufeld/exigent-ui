@@ -98,13 +98,21 @@ cmd_iterator_create :: proc(
 
 		if .DrawBackground in next.flags {
 			assert(Color_Type_BACKGROUND in next.style.colors)
-			color: Color = next.style.colors[Color_Type_BACKGROUND]
-			if next.interaction.down {
-				color = next.style.colors[Color_Type_BACKGROUND_ACTIVE]
-			} else if next.interaction.focused {
-				color = next.style.colors[Color_Type_BACKGROUND_FOCUSED]
+			cmd := Command_Rect {
+				rect  = next.rect,
+				color = next.style.colors[Color_Type_BACKGROUND],
+				alpha = next.alpha,
 			}
-			append(&ci.queued, Command_Rect{rect = next.rect, color = color, alpha = next.alpha})
+			if next.interaction.down {
+				cmd.color = next.style.colors[Color_Type_BACKGROUND_ACTIVE]
+			} else if next.interaction.focused {
+				cmd.color = next.style.colors[Color_Type_BACKGROUND_FOCUSED]
+			}
+			if .DrawBorder in next.flags {
+				cmd.border_style = next.border_style
+				cmd.border_thickness = next.border_thickness
+			}
+			append(&ci.queued, cmd)
 		}
 	}
 
@@ -130,7 +138,10 @@ Command :: union {
 Command_Done :: struct {}
 
 Command_Rect :: struct {
-	rect:  Rect,
-	color: Color,
-	alpha: u8,
+	rect:             Rect,
+	color:            Color,
+	alpha:            u8,
+	border_style:     Border_Style,
+	border_thickness: int,
+	border_color:     Color,
 }

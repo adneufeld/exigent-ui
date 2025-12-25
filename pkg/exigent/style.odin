@@ -23,6 +23,7 @@ Color_Type :: distinct string
 Color_Type_BACKGROUND :: Color_Type("background")
 Color_Type_BACKGROUND_FOCUSED :: Color_Type("background_focused") // ex. hovered
 Color_Type_BACKGROUND_ACTIVE :: Color_Type("background_active") // ex. clicked
+Color_Type_BORDER :: Color_Type("border)")
 
 style_default_init :: proc(style: ^Style, allocator := context.allocator) {
 	style.colors = make(map[Color_Type]Color, allocator)
@@ -38,6 +39,8 @@ style_default_init :: proc(style: ^Style, allocator := context.allocator) {
 		BLACK,
 		0.3,
 	)
+
+	style.colors[Color_Type_BORDER] = Color{200, 200, 200}
 }
 
 style_push :: proc(c: ^Context) {

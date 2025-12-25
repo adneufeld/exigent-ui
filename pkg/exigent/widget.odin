@@ -2,14 +2,17 @@ package exigent
 
 import "base:intrinsics"
 Widget :: struct {
-	key:         Widget_Key,
-	parent:      ^Widget,
-	children:    [dynamic]^Widget,
-	rect:        Rect,
-	style:       Style,
-	alpha:       u8,
-	flags:       bit_set[Widget_Flags],
-	interaction: Widget_Interaction,
+	key:              Widget_Key,
+	parent:           ^Widget,
+	children:         [dynamic]^Widget,
+	rect:             Rect,
+	style:            Style,
+	alpha:            u8,
+	flags:            bit_set[Widget_Flags],
+	border_style:     Border_Style,
+	border_thickness: int,
+	border_color:     Color,
+	interaction:      Widget_Interaction,
 }
 
 // Create a uint enum and give one unique entry per widget
@@ -21,14 +24,29 @@ key :: proc(id: $T) -> Widget_Key where intrinsics.type_is_enum(T) {
 
 Widget_Flags :: enum {
 	DrawBackground,
+	DrawBorder,
 }
 
-widget_begin :: proc(c: ^Context, key: Widget_Key, r: Rect) {
+Border_Style :: enum {
+	None,
+	Square,
+	// Rounded,
+}
+
+widget_begin :: proc(
+	c: ^Context,
+	key: Widget_Key,
+	r: Rect,
+	border_style: Border_Style = .None,
+	border_thickness: int = 0,
+) {
 	c.num_widgets += 1
 
 	w := new(Widget, c.temp_allocator)
 	w.alpha = 255
 	w.rect = r
+	w.border_style = border_style
+	w.border_thickness = border_thickness
 
 	if c.widget_curr != nil {
 		parent := c.widget_curr
@@ -49,6 +67,7 @@ widget_begin :: proc(c: ^Context, key: Widget_Key, r: Rect) {
 
 widget_end :: proc(c: ^Context) {
 	c.widget_curr.style = style_flat_copy(c)
+	c.widget_curr.border_color = c.widget_curr.style.colors[Color_Type_BORDER]
 
 	if len(c.widget_stack) > 0 {
 		c.widget_curr = pop(&c.widget_stack)
@@ -108,7 +127,7 @@ panel :: proc(c: ^Context, key: Widget_Key, r: Rect) {
 }
 
 button :: proc(c: ^Context, key: Widget_Key, r: Rect) -> Widget_Interaction {
-	widget_begin(c, key, r)
+	widget_begin(c, key, r, .Square, 2)
 	widget_flags(c, {.DrawBackground})
 	widget_end(c)
 	return c.widget_curr.interaction

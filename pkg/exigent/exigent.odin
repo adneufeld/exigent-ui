@@ -2,6 +2,7 @@ package exigent
 
 import "core:container/queue"
 import "core:mem"
+import "core:slice"
 
 Context :: struct {
 	screen_width, screen_height: int,
@@ -12,6 +13,7 @@ Context :: struct {
 	input_prev, input_curr:      ^Input,
 	widget_stack:                [dynamic]^Widget,
 	style_stack:                 [dynamic]Style,
+	text_style_stack:            [dynamic]Text_Style_Type,
 	widget_focus_key:            Maybe(Widget_Key),
 	// temp data
 	temp_allocator:              mem.Allocator,
@@ -36,6 +38,7 @@ context_init :: proc(
 	append(&c.style_stack, style)
 
 	c.temp_allocator = temp_allocator
+	c.text_style_stack.allocator = c.temp_allocator
 }
 
 context_destroy :: proc(c: ^Context) {
@@ -58,12 +61,14 @@ begin :: proc(c: ^Context, screen_width, screen_height: int) {
 end :: proc(c: ^Context) {
 	assert(len(c.widget_stack) == 0, "every widget_begin must have a widge_end")
 	assert(len(c.style_stack) == 1, "every style_push must have a style_pop")
+	assert(len(c.text_style_stack) == 0, "every text_style_push must have a text_style_pop")
 
 	c.is_building = false
 	input_swap(c)
 	focus, found := widget_pick(c.widget_root, c.input_curr.mouse_pos)
 	c.widget_focus_key = focus.key if found else nil
 	clear(&c.widget_stack)
+	clear(&c.text_style_stack)
 }
 
 Command_Iterator :: struct {
@@ -99,7 +104,7 @@ cmd_iterator_create :: proc(
 		if .DrawBackground in next.flags {
 			assert(Color_Type_BACKGROUND in next.style.colors)
 			cmd := Command_Rect {
-				rect  = next._rect,
+				rect  = next.rect,
 				color = next.style.colors[Color_Type_BACKGROUND],
 				alpha = next.alpha,
 			}
@@ -114,7 +119,19 @@ cmd_iterator_create :: proc(
 			}
 			append(&ci.queued, cmd)
 		}
+
+		if len(next.text) > 0 {
+			cmd := Command_Text {
+				text  = next.text,
+				pos   = next.text_pos,
+				style = next.text_style,
+			}
+			append(&ci.queued, cmd)
+		}
+
 	}
+
+	slice.reverse(ci.queued[:])
 
 	return ci
 }
@@ -133,6 +150,7 @@ cmd_iterator_next :: proc(ci: ^Command_Iterator) -> Command {
 Command :: union {
 	Command_Done,
 	Command_Rect,
+	Command_Text,
 }
 
 Command_Done :: struct {}
@@ -144,4 +162,10 @@ Command_Rect :: struct {
 	border_style:     Border_Style,
 	border_thickness: int,
 	border_color:     Color,
+}
+
+Command_Text :: struct {
+	text:  string,
+	pos:   [2]f32,
+	style: Text_Style,
 }

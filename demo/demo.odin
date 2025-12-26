@@ -2,6 +2,7 @@ package demo
 
 import ui "../pkg/exigent"
 import "core:fmt"
+import "core:strings"
 import rl "vendor:raylib"
 
 UI_ID :: enum uint {
@@ -12,9 +13,23 @@ UI_ID :: enum uint {
 main :: proc() {
 	rl.InitWindow(800, 600, "Exigent UI Demo")
 	rl.SetTargetFPS(60)
+	default_text_style_type := ui.Text_Style_Type("default")
+	default_font: rl.Font = rl.GetFontDefault()
 
 	ctx := &ui.Context{}
 	ui.context_init(ctx)
+	ui.text_style_init(
+		default_text_style_type,
+		ui.Text_Style {
+			type = default_text_style_type,
+			size = 28,
+			spacing = 2,
+			line_height = 30,
+			font = &default_font,
+			color = ui.BLACK,
+		},
+		measure_width,
+	)
 
 	for !rl.WindowShouldClose() {
 		// Input - Check for released keys
@@ -65,7 +80,7 @@ main :: proc() {
 		// ui.style_push(ctx)
 		// ui.style_set_color(ctx, ui.Color_Type_BACKGROUND_FOCUSED, ui.Color{0, 255, 0})
 		// ui.panel(ctx, ui.key(UI_ID.PANEL), r)
-		if ui.button(ctx, ui.key(UI_ID.BUTTON), r).clicked {
+		if ui.button(ctx, ui.key(UI_ID.BUTTON), r, "Click me!").clicked {
 			fmt.printfln("clicked!")
 		}
 		// ui.style_pop(ctx)
@@ -106,6 +121,11 @@ main :: proc() {
 						rl.Color{c.border_color.r, c.border_color.g, c.border_color.b, c.alpha},
 					)
 				}
+			case ui.Command_Text:
+				cstr := strings.clone_to_cstring(c.text, context.temp_allocator)
+				f := cast(^rl.Font)c.style.font
+				rcolor := rl.Color{c.style.color.r, c.style.color.g, c.style.color.b, 255}
+				rl.DrawTextEx(f^, cstr, c.pos, c.style.size, c.style.spacing, rcolor)
 			}
 		}
 
@@ -116,4 +136,11 @@ main :: proc() {
 
 	ui.context_destroy(ctx)
 	rl.CloseWindow()
+}
+
+measure_width :: proc(style: ui.Text_Style, text: string) -> f32 {
+	cstr := strings.clone_to_cstring(text, context.temp_allocator)
+	f := cast(^rl.Font)style.font
+	m := rl.MeasureTextEx(f^, cstr, style.size, style.spacing)
+	return m.x
 }

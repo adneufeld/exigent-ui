@@ -1,12 +1,16 @@
 package exigent
 
 import "base:intrinsics"
+
 Widget :: struct {
 	key:              Widget_Key,
 	parent:           ^Widget,
 	children:         [dynamic]^Widget,
-	_rect:            Rect,
+	rect:             Rect,
 	style:            Style,
+	text:             string,
+	text_pos:         [2]f32,
+	text_style:       Text_Style,
 	alpha:            u8,
 	flags:            bit_set[Widget_Flags],
 	border_style:     Border_Style,
@@ -44,7 +48,7 @@ widget_begin :: proc(
 
 	w := new(Widget, c.temp_allocator)
 	w.alpha = 255
-	w._rect = r
+	w.rect = r
 	w.border_style = border_style
 	w.border_thickness = border_thickness
 
@@ -79,7 +83,14 @@ widget_flags :: proc(c: ^Context, flags: bit_set[Widget_Flags]) {
 }
 
 widget_get_rect :: proc(c: ^Context) -> Rect {
-	return c.widget_curr._rect
+	return c.widget_curr.rect
+}
+
+// Widgets support a single text string and will be automatically split on newlines
+widget_text :: proc(c: ^Context, text: string, offset: [2]f32) {
+	c.widget_curr.text = text
+	c.widget_curr.text_pos = [2]f32{c.widget_curr.rect.x, c.widget_curr.rect.y} + offset
+	c.widget_curr.text_style = text_style_curr(c)
 }
 
 // pick the top-most widget at the mouse_pos
@@ -92,7 +103,7 @@ widget_pick :: proc(w: ^Widget, mouse_pos: [2]f32) -> (focus: ^Widget, found: bo
 	// TODO: This requires that each parent always contains their children fully.
 	// Should we assert this during widget building to prevent surprises? Or
 	// do we want an alternate approach?
-	if !rect_contains(w._rect, mouse_pos) {
+	if !rect_contains(w.rect, mouse_pos) {
 		return nil, false
 	}
 
@@ -130,9 +141,15 @@ panel :: proc(c: ^Context, key: Widget_Key, r: Rect) {
 	widget_end(c)
 }
 
-button :: proc(c: ^Context, key: Widget_Key, r: Rect) -> Widget_Interaction {
+button :: proc(c: ^Context, key: Widget_Key, r: Rect, text: string) -> Widget_Interaction {
 	widget_begin(c, key, r, .Square, 2)
 	widget_flags(c, {.DrawBackground, .DrawBorder})
+
+	text_style := text_style_curr(c)
+	tw := text_width(c, text)
+	offset := [2]f32{(r.width - f32(tw)) * 0.5, (r.height - text_style.line_height) * 0.5}
+	widget_text(c, text, offset)
+
 	widget_end(c)
 	return c.widget_curr.interaction
 }

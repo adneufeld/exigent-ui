@@ -21,7 +21,8 @@ Widget :: struct {
 }
 
 // Create a uint enum and give one unique entry per widget
-Widget_Key :: distinct uint
+Widget_Key :: distinct int
+Widget_Key_ROOT :: Widget_Key(min(int))
 
 key :: proc(id: $T) -> Widget_Key where intrinsics.type_is_enum(T) {
 	return Widget_Key(uint(id))
@@ -196,6 +197,12 @@ widget_interaction :: proc(c: ^Context, w: ^Widget) {
 	}
 }
 
+root :: proc(c: ^Context) {
+	screen := Rect{0, 0, f32(c.screen_width), f32(c.screen_height)}
+	widget_begin(c, Widget_Key_ROOT, screen)
+	widget_end(c)
+}
+
 panel :: proc(c: ^Context, key: Widget_Key, r: Rect) {
 	widget_begin(c, key, r)
 	widget_flags(c, {.DrawBackground})
@@ -204,9 +211,11 @@ panel :: proc(c: ^Context, key: Widget_Key, r: Rect) {
 
 button :: proc(c: ^Context, key: Widget_Key, r: Rect, text: string) -> Widget_Interaction {
 	widget_begin(c, key, r, .Square, 2)
+	defer widget_end(c)
+
 	widget_flags(c, {.DrawBackground, .DrawBorder})
 	widget_text(c, text, .Center, .Center)
-	widget_end(c)
+
 	return c.widget_curr.interaction
 }
 

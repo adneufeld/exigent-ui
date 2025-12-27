@@ -6,7 +6,7 @@ import "core:slice"
 
 Context :: struct {
 	screen_width, screen_height: int,
-	is_building:                 bool, // when between context_begin/context_end
+	is_building:                 bool, // when between begin/end
 	num_widgets:                 int,
 	// persistent data
 	perm_allocator:              mem.Allocator,
@@ -60,6 +60,8 @@ begin :: proc(c: ^Context, screen_width, screen_height: int) {
 	// the map header struct become invalid after temp_allocator has free_all
 	// called on it
 	c.widget_keys = make(map[Widget_Key]struct{}, c.temp_allocator)
+
+	root(c) // create root widget all builder-code widgets are children of
 }
 
 end :: proc(c: ^Context) {

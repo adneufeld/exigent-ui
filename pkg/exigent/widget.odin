@@ -46,8 +46,13 @@ widget_begin :: proc(
 	border_thickness: int = 0,
 ) {
 	c.num_widgets += 1
+	if _, exists := c.widget_keys[key]; exists {
+		panic("duplicate widget key used")
+	}
+	c.widget_keys[key] = struct{}{}
 
 	w := new(Widget, c.temp_allocator)
+	w.key = key
 	w.alpha = 255
 	w.rect = r
 	w.border_style = border_style
@@ -88,8 +93,8 @@ widget_get_rect :: proc(c: ^Context) -> Rect {
 }
 
 widget_text :: proc {
-	widget_text_at_offset,
 	widget_text_aligned,
+	widget_text_at_offset,
 }
 
 Text_Align_H :: enum {
@@ -203,4 +208,17 @@ button :: proc(c: ^Context, key: Widget_Key, r: Rect, text: string) -> Widget_In
 	widget_text(c, text, .Center, .Center)
 	widget_end(c)
 	return c.widget_curr.interaction
+}
+
+label :: proc(
+	c: ^Context,
+	key: Widget_Key,
+	r: Rect,
+	text: string,
+	h_align: Text_Align_H = .Left,
+	v_align: Text_Align_V = .Top,
+) {
+	widget_begin(c, key, r)
+	widget_text(c, text, h_align, v_align)
+	widget_end(c)
 }

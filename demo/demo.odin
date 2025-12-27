@@ -8,6 +8,9 @@ import rl "vendor:raylib"
 UI_ID :: enum uint {
 	PANEL,
 	BUTTON,
+	LABEL1,
+	LABEL2,
+	LABEL3,
 }
 
 main :: proc() {
@@ -76,14 +79,24 @@ main :: proc() {
 		// Update - Build UI
 		ui.begin(ctx, 800, 600)
 		r := ui.Rect{0, 0, 800, 600}
-		r = ui.rect_inset(r, ui.Inset{90, 90, 90, 90})
-		// ui.style_push(ctx)
-		// ui.style_set_color(ctx, ui.Color_Type_BACKGROUND_FOCUSED, ui.Color{0, 255, 0})
-		// ui.panel(ctx, ui.key(UI_ID.PANEL), r)
-		if ui.button(ctx, ui.key(UI_ID.BUTTON), r, "Click me!").clicked {
+
+		t1 := ui.rect_cut_top(&r, 100)
+		t1 = ui.rect_inset(t1, ui.Inset{0, 90, 0, 90})
+		ui.label(ctx, ui.key(UI_ID.LABEL1), t1, "Label: ")
+
+		t2 := ui.rect_cut_top(&r, 100)
+		t2 = ui.rect_inset(t2, ui.Inset{0, 90, 0, 90})
+		ui.label(ctx, ui.key(UI_ID.LABEL2), t2, "Label: ")
+
+		t3 := ui.rect_cut_top(&r, 100)
+		t3 = ui.rect_inset(t3, ui.Inset{0, 90, 0, 90})
+		ui.label(ctx, ui.key(UI_ID.LABEL3), t3, "Label: ")
+
+		bot := r
+		bot = ui.rect_inset(bot, ui.Inset{0, 90, 180, 90})
+		if ui.button(ctx, ui.key(UI_ID.BUTTON), bot, "Click me!").clicked {
 			fmt.printfln("clicked!")
 		}
-		// ui.style_pop(ctx)
 		ui.end(ctx)
 
 		// Draw

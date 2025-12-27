@@ -18,6 +18,7 @@ Context :: struct {
 	// temp data
 	temp_allocator:              mem.Allocator,
 	widget_root, widget_curr:    ^Widget,
+	widget_keys:                 map[Widget_Key]struct{},
 }
 
 context_init :: proc(
@@ -28,7 +29,6 @@ context_init :: proc(
 	temp_allocator := context.temp_allocator,
 ) {
 	c.perm_allocator = perm_allocator
-
 	c.widget_stack.allocator = c.perm_allocator
 	c.input_prev = input_create(key_min_index, key_max_index, c.perm_allocator)
 	c.input_curr = input_create(key_min_index, key_max_index, c.perm_allocator)
@@ -56,6 +56,10 @@ begin :: proc(c: ^Context, screen_width, screen_height: int) {
 	c.widget_curr = nil
 	c.num_widgets = 0
 	c.is_building = true
+	// we need to re-init this every frame otherwise the allocated buckets in
+	// the map header struct become invalid after temp_allocator has free_all
+	// called on it
+	c.widget_keys = make(map[Widget_Key]struct{}, c.temp_allocator)
 }
 
 end :: proc(c: ^Context) {
@@ -69,6 +73,7 @@ end :: proc(c: ^Context) {
 	c.widget_focus_key = focus.key if found else nil
 	clear(&c.widget_stack)
 	clear(&c.text_style_stack)
+	clear(&c.widget_keys)
 }
 
 Command_Iterator :: struct {

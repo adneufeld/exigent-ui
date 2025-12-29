@@ -122,7 +122,7 @@ input_is_mouse_pressed :: proc(c: ^Context, btn: Mouse_Button) -> bool {
 	return btn in c.input_curr.mouse_pressed
 }
 
-// Whether the mouse button was released inside the focused widget this exact frame
+// Whether the mouse button was released inside the hovered widget this exact frame
 input_is_mouse_clicked :: proc(c: ^Context, btn: Mouse_Button) -> bool {
 	return btn in c.input_curr.mouse_clicked
 }

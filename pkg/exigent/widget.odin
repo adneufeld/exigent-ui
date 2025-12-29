@@ -1,10 +1,13 @@
 package exigent
 
 import "base:intrinsics"
+import "base:runtime"
+import "core:hash"
+import "core:mem"
 import "core:strings"
 
 Widget :: struct {
-	key:              Widget_Key,
+	id:               Widget_ID,
 	parent:           ^Widget,
 	children:         [dynamic]^Widget,
 	rect:             Rect,
@@ -20,12 +23,39 @@ Widget :: struct {
 	interaction:      Widget_Interaction,
 }
 
-// Create a uint enum and give one unique entry per widget
-Widget_Key :: distinct int
-Widget_Key_ROOT :: Widget_Key(min(int))
+Widget_ID :: distinct u32
 
-key :: proc(id: $T) -> Widget_Key where intrinsics.type_is_enum(T) {
-	return Widget_Key(uint(id))
+@(private = "file")
+Raw_Widget_ID :: struct {
+	stack_id: u32,
+	fp:       u32, // hashed filepath
+	line:     i32,
+	col:      i32,
+	sub_id:   int,
+}
+
+@(private = "file")
+create_id :: proc(
+	c: ^Context,
+	caller: runtime.Source_Code_Location,
+	sub_id: int = 0,
+) -> Widget_ID {
+	top_stack_id: u32 = u32(c.id_stack[len(c.id_stack) - 1]) if len(c.id_stack) > 0 else 0
+	raw := Raw_Widget_ID {
+		stack_id = top_stack_id,
+		fp       = hash.fnv32a(transmute([]u8)caller.file_path),
+		line     = caller.line,
+		col      = caller.column,
+		sub_id   = sub_id,
+	}
+	bytes := mem.any_to_bytes(raw)
+	id := Widget_ID(hash.fnv32a(bytes))
+	append(&c.id_stack, id)
+	return id
+}
+
+pop_id :: proc(c: ^Context) {
+	pop(&c.id_stack)
 }
 
 Widget_Flags :: enum {
@@ -39,25 +69,15 @@ Border_Style :: enum {
 	// Rounded,
 }
 
-widget_begin :: proc(
-	c: ^Context,
-	key: Widget_Key,
-	r: Rect,
-	border_style: Border_Style = .None,
-	border_thickness: int = 0,
-) {
+widget_begin :: proc(c: ^Context, r: Rect, caller: runtime.Source_Code_Location, sub_id: int = 0) {
 	c.num_widgets += 1
-	if _, exists := c.widget_keys[key]; exists {
-		panic("duplicate widget key used")
-	}
-	c.widget_keys[key] = struct{}{}
 
 	w := new(Widget, c.temp_allocator)
-	w.key = key
+	w.id = create_id(c, caller, sub_id)
 	w.alpha = 255
 	w.rect = r
-	w.border_style = border_style
-	w.border_thickness = border_thickness
+	// w.border_style = border_style
+	// w.border_thickness = border_thickness
 
 	if c.widget_curr != nil {
 		parent := c.widget_curr
@@ -77,6 +97,7 @@ widget_begin :: proc(
 }
 
 widget_end :: proc(c: ^Context) {
+	pop_id(c)
 	c.widget_curr.style = style_flat_copy(c)
 	c.widget_curr.border_color = c.widget_curr.style.colors[Color_Type_BORDER]
 
@@ -157,7 +178,7 @@ widget_text_at_offset :: proc(c: ^Context, text: string, offset: [2]f32) {
 
 // pick the top-most widget at the mouse_pos
 @(private)
-widget_pick :: proc(w: ^Widget, mouse_pos: [2]f32) -> (focus: ^Widget, found: bool) {
+widget_pick :: proc(w: ^Widget, mouse_pos: [2]f32) -> (hovered: ^Widget, found: bool) {
 	if w == nil {
 		return nil, false
 	}
@@ -170,9 +191,9 @@ widget_pick :: proc(w: ^Widget, mouse_pos: [2]f32) -> (focus: ^Widget, found: bo
 	}
 
 	#reverse for child in w.children {
-		descendent_focus, found := widget_pick(child, mouse_pos)
+		descendent, found := widget_pick(child, mouse_pos)
 		if found {
-			return descendent_focus, true
+			return descendent, true
 		}
 	}
 
@@ -180,7 +201,7 @@ widget_pick :: proc(w: ^Widget, mouse_pos: [2]f32) -> (focus: ^Widget, found: bo
 }
 
 Widget_Interaction :: struct {
-	focused: bool, // hovered
+	hovered: bool, // hovered
 	down:    bool, // held down for one or more frames
 	pressed: bool, // single frame mouse press down
 	clicked: bool, // single frame mouse released inside widget
@@ -188,29 +209,35 @@ Widget_Interaction :: struct {
 
 @(private)
 widget_interaction :: proc(c: ^Context, w: ^Widget) {
-	widget_focus_key, ok := c.widget_focus_key.?
-	if ok && c.widget_focus_key == w.key {
-		w.interaction.focused = true
+	hovered_widget_id, ok := c.hovered_widget_id.?
+	if ok && c.hovered_widget_id == w.id {
+		w.interaction.hovered = true
 		w.interaction.down = input_is_mouse_down(c, .Left)
 		w.interaction.pressed = input_is_mouse_pressed(c, .Left)
 		w.interaction.clicked = input_is_mouse_clicked(c, .Left)
 	}
 }
 
-root :: proc(c: ^Context) {
+root :: proc(c: ^Context, caller := #caller_location) {
 	screen := Rect{0, 0, f32(c.screen_width), f32(c.screen_height)}
-	widget_begin(c, Widget_Key_ROOT, screen)
+	widget_begin(c, screen, caller)
 	widget_end(c)
 }
 
-panel :: proc(c: ^Context, key: Widget_Key, r: Rect) {
-	widget_begin(c, key, r)
+panel :: proc(c: ^Context, r: Rect, caller := #caller_location) {
+	widget_begin(c, r, caller)
 	widget_flags(c, {.DrawBackground})
 	widget_end(c)
 }
 
-button :: proc(c: ^Context, key: Widget_Key, r: Rect, text: string) -> Widget_Interaction {
-	widget_begin(c, key, r, .Square, 2)
+button :: proc(
+	c: ^Context,
+	r: Rect,
+	text: string,
+	caller := #caller_location,
+) -> Widget_Interaction {
+	// widget_begin(c, r, .Square, 2) // TODO
+	widget_begin(c, r, caller)
 	defer widget_end(c)
 
 	widget_flags(c, {.DrawBackground, .DrawBorder})
@@ -221,13 +248,20 @@ button :: proc(c: ^Context, key: Widget_Key, r: Rect, text: string) -> Widget_In
 
 label :: proc(
 	c: ^Context,
-	key: Widget_Key,
 	r: Rect,
 	text: string,
 	h_align: Text_Align_H = .Left,
 	v_align: Text_Align_V = .Top,
+	caller := #caller_location,
 ) {
-	widget_begin(c, key, r)
+	widget_begin(c, r, caller)
 	widget_text(c, text, h_align, v_align)
 	widget_end(c)
+}
+
+text_input :: proc(c: ^Context, r: Rect, caller := #caller_location) -> Widget_Interaction {
+	widget_begin(c, r, caller)
+	defer widget_end(c)
+
+	return c.widget_curr.interaction
 }

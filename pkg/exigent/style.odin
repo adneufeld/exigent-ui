@@ -22,7 +22,7 @@ color_blend :: proc(c1, c2: Color, t: f32) -> (cb: Color) {
 
 Color_Type :: distinct string
 Color_Type_BACKGROUND :: Color_Type("background")
-Color_Type_BACKGROUND_FOCUSED :: Color_Type("background_focused") // ex. hovered
+Color_Type_BACKGROUND_HOVERED :: Color_Type("background_hovered")
 Color_Type_BACKGROUND_ACTIVE :: Color_Type("background_active") // ex. clicked
 Color_Type_BORDER :: Color_Type("border)")
 
@@ -30,7 +30,7 @@ style_default_init :: proc(style: ^Style, allocator := context.allocator) {
 	style.colors = make(map[Color_Type]Color, allocator)
 
 	style.colors[Color_Type_BACKGROUND] = Color{128, 128, 128}
-	style.colors[Color_Type_BACKGROUND_FOCUSED] = color_blend(
+	style.colors[Color_Type_BACKGROUND_HOVERED] = color_blend(
 		style.colors[Color_Type_BACKGROUND],
 		WHITE,
 		0.3,

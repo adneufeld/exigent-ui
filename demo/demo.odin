@@ -5,14 +5,6 @@ import "core:fmt"
 import "core:strings"
 import rl "vendor:raylib"
 
-UI_ID :: enum uint {
-	PANEL,
-	BUTTON,
-	LABEL1,
-	LABEL2,
-	LABEL3,
-}
-
 main :: proc() {
 	rl.InitWindow(800, 600, "Exigent UI Demo")
 	rl.SetTargetFPS(60)
@@ -82,19 +74,19 @@ main :: proc() {
 
 		t1 := ui.rect_cut_top(&r, 100)
 		t1 = ui.rect_inset(t1, ui.Inset{0, 90, 0, 90})
-		ui.label(ctx, ui.key(UI_ID.LABEL1), t1, "Label: ")
+		ui.label(ctx, t1, "Label: ")
 
 		t2 := ui.rect_cut_top(&r, 100)
 		t2 = ui.rect_inset(t2, ui.Inset{0, 90, 0, 90})
-		ui.label(ctx, ui.key(UI_ID.LABEL2), t2, "Label: ")
+		ui.label(ctx, t2, "Label: ")
 
 		t3 := ui.rect_cut_top(&r, 100)
 		t3 = ui.rect_inset(t3, ui.Inset{0, 90, 0, 90})
-		ui.label(ctx, ui.key(UI_ID.LABEL3), t3, "Label: ")
+		ui.label(ctx, t3, "Label: ")
 
 		bot := r
 		bot = ui.rect_inset(bot, ui.Inset{0, 90, 180, 90})
-		if ui.button(ctx, ui.key(UI_ID.BUTTON), bot, "Click me!").clicked {
+		if ui.button(ctx, bot, "Click me!").clicked {
 			fmt.printfln("clicked!")
 		}
 		ui.end(ctx)

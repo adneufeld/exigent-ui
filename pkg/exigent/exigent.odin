@@ -14,11 +14,11 @@ Context :: struct {
 	widget_stack:                [dynamic]^Widget,
 	style_stack:                 [dynamic]Style,
 	text_style_stack:            [dynamic]Text_Style_Type,
-	widget_focus_key:            Maybe(Widget_Key),
+	hovered_widget_id:           Maybe(Widget_ID),
 	// temp data
 	temp_allocator:              mem.Allocator,
 	widget_root, widget_curr:    ^Widget,
-	widget_keys:                 map[Widget_Key]struct{},
+	id_stack:                    [dynamic]Widget_ID,
 }
 
 context_init :: proc(
@@ -39,6 +39,7 @@ context_init :: proc(
 
 	c.temp_allocator = temp_allocator
 	c.text_style_stack.allocator = c.temp_allocator
+	c.id_stack.allocator = c.temp_allocator
 }
 
 context_destroy :: proc(c: ^Context) {
@@ -56,10 +57,6 @@ begin :: proc(c: ^Context, screen_width, screen_height: int) {
 	c.widget_curr = nil
 	c.num_widgets = 0
 	c.is_building = true
-	// we need to re-init this every frame otherwise the allocated buckets in
-	// the map header struct become invalid after temp_allocator has free_all
-	// called on it
-	c.widget_keys = make(map[Widget_Key]struct{}, c.temp_allocator)
 
 	root(c) // create root widget all builder-code widgets are children of
 }
@@ -71,11 +68,11 @@ end :: proc(c: ^Context) {
 
 	c.is_building = false
 	input_swap(c)
-	focus, found := widget_pick(c.widget_root, c.input_curr.mouse_pos)
-	c.widget_focus_key = focus.key if found else nil
+	hovered, found := widget_pick(c.widget_root, c.input_curr.mouse_pos)
+	c.hovered_widget_id = hovered.id if found else nil
 	clear(&c.widget_stack)
 	clear(&c.text_style_stack)
-	clear(&c.widget_keys)
+	clear(&c.id_stack)
 }
 
 Command_Iterator :: struct {
@@ -117,8 +114,8 @@ cmd_iterator_create :: proc(
 			}
 			if next.interaction.down {
 				cmd.color = next.style.colors[Color_Type_BACKGROUND_ACTIVE]
-			} else if next.interaction.focused {
-				cmd.color = next.style.colors[Color_Type_BACKGROUND_FOCUSED]
+			} else if next.interaction.hovered {
+				cmd.color = next.style.colors[Color_Type_BACKGROUND_HOVERED]
 			}
 			if .DrawBorder in next.flags {
 				cmd.border_style = next.border_style

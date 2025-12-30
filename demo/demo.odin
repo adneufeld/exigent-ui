@@ -107,7 +107,7 @@ main :: proc() {
 				break draw_ui
 			case ui.Command_Rect:
 				rl_color := rl.Color{c.color.r, c.color.g, c.color.b, c.alpha}
-				switch c.border_style {
+				switch c.border_type {
 				case .None:
 					rl.DrawRectangleV(
 						rl.Vector2{c.rect.x, c.rect.y},

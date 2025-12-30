@@ -2,8 +2,9 @@ package exigent
 
 
 Style :: struct {
+	border_style: Border_Style,
 	// TODO: we should swap to a registry based system that the user can extend
-	colors: map[Color_Type]Color,
+	colors:       map[Color_Type]Color,
 }
 
 Color :: [3]u8
@@ -27,6 +28,12 @@ Color_Type_BACKGROUND_ACTIVE :: Color_Type("background_active") // ex. clicked
 Color_Type_BORDER :: Color_Type("border)")
 
 style_default_init :: proc(style: ^Style, allocator := context.allocator) {
+	style.border_style = Border_Style {
+		color     = Color{200, 200, 200},
+		type      = .Square,
+		thickness = 2,
+	}
+
 	style.colors = make(map[Color_Type]Color, allocator)
 
 	style.colors[Color_Type_BACKGROUND] = Color{128, 128, 128}
@@ -40,8 +47,6 @@ style_default_init :: proc(style: ^Style, allocator := context.allocator) {
 		BLACK,
 		0.3,
 	)
-
-	style.colors[Color_Type_BORDER] = Color{200, 200, 200}
 }
 
 style_push :: proc(c: ^Context) {
@@ -93,14 +98,32 @@ style_has_override :: proc(c: ^Context, ct: Color_Type) -> bool {
 @(private)
 style_flat_copy :: proc(c: ^Context) -> Style {
 	colors_copy := make(map[Color_Type]Color, c.temp_allocator)
+	border_style: Border_Style
 
 	// by iterating forward through the style array when we append style overrides
 	// to the end the result is overrides replace default or earlier overrides
 	for s in c.style_stack {
+		// flatten colours across multiple Style structs
 		for ct, c in s.colors {
 			colors_copy[ct] = c
 		}
+		// get first border style but skip Style structs with no border style
+		if border_style == {} && s.border_style != {} {
+			border_style = s.border_style
+		}
 	}
 
-	return Style{colors = colors_copy}
+	return Style{colors = colors_copy, border_style = border_style}
+}
+
+Border_Style :: struct {
+	type:      Border_Type,
+	thickness: int,
+	color:     Color,
+}
+
+Border_Type :: enum {
+	None,
+	Square,
+	// Rounded,
 }

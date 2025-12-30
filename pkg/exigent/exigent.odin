@@ -118,8 +118,8 @@ cmd_iterator_create :: proc(
 				cmd.color = next.style.colors[Color_Type_BACKGROUND_HOVERED]
 			}
 			if .DrawBorder in next.flags {
-				cmd.border_style = next.border_style
-				cmd.border_thickness = next.border_thickness
+				cmd.border_type = next.style.border_style.type
+				cmd.border_thickness = next.style.border_style.thickness
 			}
 			append(&ci.queued, cmd)
 		}
@@ -163,7 +163,7 @@ Command_Rect :: struct {
 	rect:             Rect,
 	color:            Color,
 	alpha:            u8,
-	border_style:     Border_Style,
+	border_type:      Border_Type,
 	border_thickness: int,
 	border_color:     Color,
 }

@@ -7,20 +7,17 @@ import "core:mem"
 import "core:strings"
 
 Widget :: struct {
-	id:               Widget_ID,
-	parent:           ^Widget,
-	children:         [dynamic]^Widget,
-	rect:             Rect,
-	style:            Style,
-	text:             string,
-	text_pos:         [2]f32,
-	text_style:       Text_Style,
-	alpha:            u8,
-	flags:            bit_set[Widget_Flags],
-	border_style:     Border_Style,
-	border_thickness: int,
-	border_color:     Color,
-	interaction:      Widget_Interaction,
+	id:          Widget_ID,
+	parent:      ^Widget,
+	children:    [dynamic]^Widget,
+	rect:        Rect,
+	style:       Style,
+	text:        string,
+	text_pos:    [2]f32,
+	text_style:  Text_Style,
+	alpha:       u8,
+	flags:       bit_set[Widget_Flags],
+	interaction: Widget_Interaction,
 }
 
 Widget_ID :: distinct u32
@@ -63,12 +60,6 @@ Widget_Flags :: enum {
 	DrawBorder,
 }
 
-Border_Style :: enum {
-	None,
-	Square,
-	// Rounded,
-}
-
 widget_begin :: proc(c: ^Context, r: Rect, caller: runtime.Source_Code_Location, sub_id: int = 0) {
 	c.num_widgets += 1
 
@@ -76,8 +67,7 @@ widget_begin :: proc(c: ^Context, r: Rect, caller: runtime.Source_Code_Location,
 	w.id = create_id(c, caller, sub_id)
 	w.alpha = 255
 	w.rect = r
-	// w.border_style = border_style
-	// w.border_thickness = border_thickness
+	w.style = style_flat_copy(c)
 
 	if c.widget_curr != nil {
 		parent := c.widget_curr
@@ -98,8 +88,6 @@ widget_begin :: proc(c: ^Context, r: Rect, caller: runtime.Source_Code_Location,
 
 widget_end :: proc(c: ^Context) {
 	pop_id(c)
-	c.widget_curr.style = style_flat_copy(c)
-	c.widget_curr.border_color = c.widget_curr.style.colors[Color_Type_BORDER]
 
 	if len(c.widget_stack) > 0 {
 		c.widget_curr = pop(&c.widget_stack)
@@ -236,7 +224,6 @@ button :: proc(
 	text: string,
 	caller := #caller_location,
 ) -> Widget_Interaction {
-	// widget_begin(c, r, .Square, 2) // TODO
 	widget_begin(c, r, caller)
 	defer widget_end(c)
 

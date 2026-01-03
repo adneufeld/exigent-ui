@@ -133,3 +133,17 @@ rect_align :: proc(
 
 	return inner
 }
+
+rect_intersect :: proc(r1, r2: Rect) -> Rect {
+	x1 := max(r1.x, r2.x)
+	y1 := max(r1.y, r2.y)
+	x2 := min(r1.x + r1.width, r2.x + r2.width)
+	y2 := min(r1.y + r1.height, r2.y + r2.height)
+
+	if x2 < x1 || y2 < y1 {
+		return Rect{}
+	}
+
+	return Rect{x = x1, y = y1, width = x2 - x1, height = y2 - y1}
+}
+

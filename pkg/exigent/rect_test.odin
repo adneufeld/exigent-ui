@@ -416,3 +416,78 @@ test_rect_align :: proc(t: ^testing.T) {
 		)
 	}
 }
+
+@(test)
+test_rect_intersect :: proc(t: ^testing.T) {
+	TestCaseIntersect :: struct {
+		desc:     string,
+		r1, r2:   Rect,
+		expected: Rect,
+	}
+
+	cases := []TestCaseIntersect {
+		{
+			desc = "no intersection (separate)",
+			r1 = Rect{0, 0, 10, 10},
+			r2 = Rect{20, 20, 10, 10},
+			expected = Rect{0, 0, 0, 0},
+		},
+		{
+			desc = "partial intersection",
+			r1 = Rect{0, 0, 10, 10},
+			r2 = Rect{5, 5, 10, 10},
+			expected = Rect{5, 5, 5, 5},
+		},
+		{
+			desc = "one inside another",
+			r1 = Rect{0, 0, 10, 10},
+			r2 = Rect{2, 2, 2, 2},
+			expected = Rect{2, 2, 2, 2},
+		},
+		{
+			desc = "identical rectangles",
+			r1 = Rect{0, 0, 10, 10},
+			r2 = Rect{0, 0, 10, 10},
+			expected = Rect{0, 0, 10, 10},
+		},
+		{
+			desc = "touching at right edge (returns zero-width rect at touch point)",
+			r1 = Rect{0, 0, 10, 10},
+			r2 = Rect{10, 0, 10, 10},
+			expected = Rect{10, 0, 0, 10},
+		},
+		{
+			desc = "touching at bottom edge (returns zero-height rect at touch point)",
+			r1 = Rect{0, 0, 10, 10},
+			r2 = Rect{0, 10, 10, 10},
+			expected = Rect{0, 10, 10, 0},
+		},
+		{
+			desc = "no intersection (overlapping x, separate y)",
+			r1 = Rect{0, 0, 10, 10},
+			r2 = Rect{0, 20, 10, 10},
+			expected = Rect{0, 0, 0, 0},
+		},
+		{
+			desc = "negative coordinates intersection",
+			r1 = Rect{-10, -10, 20, 20},
+			r2 = Rect{0, 0, 20, 20},
+			expected = Rect{0, 0, 10, 10},
+		},
+	}
+
+	for c in cases {
+		result := rect_intersect(c.r1, c.r2)
+		testing.expectf(
+			t,
+			result == c.expected,
+			"\n%s\nexpected: %v,\nactual: %v\nr1: %v, r2: %v",
+			c.desc,
+			c.expected,
+			result,
+			c.r1,
+			c.r2,
+		)
+	}
+}
+

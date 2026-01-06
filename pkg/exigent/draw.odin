@@ -47,7 +47,7 @@ draw_text_aligned :: proc(
 	text := text_clip(c, text, c.widget_curr.rect)
 
 	text_style := text_style_curr(c)
-	r := widget_get_rect(c)
+	r := c.widget_curr.rect
 	tw := text_width(c, text)
 
 	offset: [2]f32
@@ -85,5 +85,13 @@ draw_text_at_offset :: proc(c: ^Context, text: string, offset: [2]f32) {
 			clip = c.widget_curr.clip,
 		},
 	)
+}
+
+clip :: proc(c: ^Context, r: Rect) {
+	append(&c.draw_cmds, Command_Clip{rect = r})
+}
+
+unclip :: proc(c: ^Context) {
+	append(&c.draw_cmds, Command_Unclip{})
 }
 

@@ -121,6 +121,8 @@ Command :: union {
 	Command_Done,
 	Command_Rect,
 	Command_Text,
+	Command_Clip,
+	Command_Unclip,
 }
 
 Command_Done :: struct {}
@@ -139,4 +141,10 @@ Command_Text :: struct {
 	clip:  Maybe(Rect),
 	style: Text_Style,
 }
+
+Command_Clip :: struct {
+	rect: Rect,
+}
+
+Command_Unclip :: struct {}
 

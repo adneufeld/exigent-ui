@@ -24,7 +24,6 @@ Border_Style :: struct {
 Border_Type :: enum {
 	None,
 	Square,
-	// Rounded,
 }
 
 Widget_Type_Style :: struct {

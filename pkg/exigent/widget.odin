@@ -52,6 +52,7 @@ widget_begin :: proc(
 	}
 
 	widget_interaction(c, c.widget_curr)
+	clip(c, c.widget_curr.clip)
 }
 
 widget_end :: proc(c: ^Context) {
@@ -60,6 +61,8 @@ widget_end :: proc(c: ^Context) {
 	if len(c.widget_stack) > 0 {
 		c.widget_curr = pop(&c.widget_stack)
 	}
+
+	unclip(c)
 }
 
 Widget_ID :: distinct u32
@@ -99,22 +102,6 @@ widget_id_push :: proc(
 @(private = "file")
 widget_id_pop :: proc(c: ^Context) {
 	pop(&c.id_stack)
-}
-
-// Widget_Flags :: enum {
-// 	DrawBackground,
-// 	DrawBorder,
-// 	HasHover,
-// 	HasActive,
-// 	HasNoClip,
-// }
-
-// widget_flags :: proc(c: ^Context, flags: bit_set[Widget_Flags]) {
-// 	c.widget_curr.flags += flags
-// }
-
-widget_get_rect :: proc(c: ^Context) -> Rect {
-	return c.widget_curr.rect
 }
 
 // pick the top-most widget at the mouse_pos
@@ -186,13 +173,6 @@ root :: proc(c: ^Context, caller := #caller_location, sub_id: int = 0) {
 	widget_begin(c, Widget_Type_ROOT, screen, caller, sub_id)
 	widget_end(c)
 }
-
-// Widget_Type_PANEL := widget_register(Widget_Style{base = Style{background = Color{128, 128, 128}}})
-// panel :: proc(c: ^Context, r: Rect, caller := #caller_location, sub_id: int = 0) {
-// 	widget_begin(c, Widget_Type_PANEL, r, caller, sub_id)
-// 	draw_background(c)
-// 	widget_end(c)
-// }
 
 Widget_Type_BUTTON := widget_register(
 	Widget_Style {
@@ -273,7 +253,7 @@ text_input :: proc(
 	return c.widget_curr.interaction
 }
 
-ScrollBox :: struct {
+Scrollbox :: struct {
 	y_offset: int,
 }
 
@@ -281,13 +261,12 @@ Widget_Type_SCROLLBOX := widget_register(Widget_Style{})
 scrollbox :: proc(
 	c: ^Context,
 	r: Rect,
+	data: ^Scrollbox,
 	caller := #caller_location,
 	sub_id: int = 0,
 ) -> Widget_Interaction {
 	widget_begin(c, Widget_Type_SCROLLBOX, r, caller, sub_id)
 	defer widget_end(c)
-
-	// widget_flags(c, {.DrawBackground})
 
 	content := r
 	scroll_container := rect_cut_right(&content, 20)

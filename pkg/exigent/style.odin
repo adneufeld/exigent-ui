@@ -75,3 +75,15 @@ style_get :: proc(c: ^Context, type: Widget_Type) -> Widget_Style {
 	}
 	panic("missing style for widget")
 }
+
+// Get the current widget's style, accounting for hover, active, or none (base)
+style_curr :: proc(c: ^Context) -> Style {
+	style := c.widget_curr.style.base
+	if c.widget_curr.id == c.active_widget_id && c.widget_curr.style.active != {} {
+		style = c.widget_curr.style.active
+	} else if c.widget_curr.id == c.hovered_widget_id && c.widget_curr.style.hover != {} {
+		style = c.widget_curr.style.hover
+	}
+	return style
+}
+

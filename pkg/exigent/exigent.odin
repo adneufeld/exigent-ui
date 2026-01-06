@@ -7,16 +7,16 @@ import "core:slice"
 Context :: struct {
 	screen_width, screen_height: int,
 	is_building:                 bool, // when between begin/end
-	num_widgets:                 int,
 	key_max:                     int,
 	// caller-owned data
 	key_map:                     map[int]Special_Key,
+	active_text_buffer:          ^Text_Buffer,
 	// persistent data
 	perm_allocator:              mem.Allocator,
 	input_prev, input_curr:      ^Input, // persisted so it can be diffed
 	style_default:               map[Widget_Type]Widget_Style,
-	hovered_widget_id:           Maybe(Widget_ID),
-	active_text_buffer:          ^Text_Buffer,
+	hovered_widget_id:           Maybe(Widget_ID), // persisted across frames
+	draw_cmds:                   [dynamic]Command,
 	// temp data
 	temp_allocator:              mem.Allocator,
 	widget_root, widget_curr:    ^Widget,
@@ -25,6 +25,7 @@ Context :: struct {
 	text_style_stack:            [dynamic]Text_Style_Type,
 	// TODO: could get rid of id_stack and just use widget_stack[0].id
 	id_stack:                    [dynamic]Widget_ID,
+	active_widget_id:            Maybe(Widget_ID), // only used within a frame
 }
 
 context_init :: proc(
@@ -40,6 +41,7 @@ context_init :: proc(
 
 	c.temp_allocator = temp_allocator
 	c.perm_allocator = perm_allocator
+	c.draw_cmds.allocator = c.perm_allocator
 	c.input_prev = input_create(key_min, key_max + len(Special_Key), c.perm_allocator)
 	c.input_curr = input_create(key_min, key_max + len(Special_Key), c.perm_allocator)
 	c.style_default = DEFAULT_STYLES
@@ -55,8 +57,9 @@ begin :: proc(c: ^Context, screen_width, screen_height: int) {
 	c.screen_width = screen_width
 	c.screen_height = screen_height
 	c.widget_root = nil
-	c.num_widgets = 0
+	c.active_widget_id = nil
 	c.is_building = true
+	clear(&c.draw_cmds) // memory is persisted across frames but not data
 	c.widget_stack = make([dynamic]^Widget, c.temp_allocator)
 	c.style_stack = make([dynamic]Widget_Type_Style, c.temp_allocator)
 	c.text_style_stack = make([dynamic]Text_Style_Type, c.temp_allocator)
@@ -88,104 +91,30 @@ end :: proc(c: ^Context) {
 	c.is_building = false
 	input_swap(c)
 	hovered, found := widget_pick(c.widget_root, c.input_curr.mouse_pos)
-	c.hovered_widget_id = hovered.id if found else nil
+	if found {
+		c.hovered_widget_id = hovered.id
+	} else {
+		c.hovered_widget_id = nil
+		c.active_widget_id = nil
+	}
 }
 
 Command_Iterator :: struct {
-	queued: [dynamic]Command,
-	idx:    int,
+	idx:  int,
+	cmds: ^[dynamic]Command,
 }
 
-DEFAULT_CMDS_PER_WIDGET_HEURISTIC :: 5
-
-cmd_iterator_create :: proc(
-	c: ^Context,
-	cmds_per_widget_heuristic := DEFAULT_CMDS_PER_WIDGET_HEURISTIC,
-	allocator := context.temp_allocator,
-) -> Command_Iterator {
-	context.allocator = allocator
-
-	ci := Command_Iterator {
-		queued = make([dynamic]Command, 0, c.num_widgets * cmds_per_widget_heuristic),
-	}
-
-	widgets: queue.Queue(^Widget)
-	queue.init(&widgets, c.num_widgets, c.temp_allocator)
-	queue.push_back(&widgets, c.widget_root)
-
-	for true {
-		if queue.len(widgets) <= 0 {
-			break
-		}
-
-		next := queue.pop_front(&widgets)
-		queue.push_back_elems(&widgets, ..next.children[:])
-
-		if .DrawBackground in next.flags {
-			cmd := Command_Rect {
-				rect  = next.rect,
-				color = next.style.base.background,
-				alpha = next.alpha,
-			}
-			if .HasNoClip not_in next.flags {
-				// This assumption that we want to clip nearly every widget has
-				// performance implications because the backend renderer cannot
-				// batch together many draw calls since here each draw has a
-				// separate clip rect
-				cmd.clip = next.clip
-			}
-			if .HasActive in next.flags && next.interaction.down {
-				cmd.color = next.style.active.background
-			} else if .HasHover in next.flags && next.interaction.hovered {
-				cmd.color = next.style.hover.background
-			}
-			// Consider just making .DrawBorder a separate non-filled Command_Rect instance
-			// It could easily have the border as one rect and the filled rect
-			// interior as a separate rect. Then the interior could be insert by
-			// the border thickness since the border would overlap it anyways
-			if .DrawBorder in next.flags {
-				cmd.border = next.style.base.border
-				if .HasActive in next.flags && next.style.active.border.type != .None {
-					cmd.border = next.style.active.border
-				} else if .HasHover in next.flags && next.style.hover.border.type != .None {
-					cmd.border = next.style.hover.border
-				}
-			}
-			append(&ci.queued, cmd)
-		}
-
-		if len(next.text) > 0 {
-			cmd := Command_Text {
-				text  = next.text,
-				pos   = next.text_pos,
-				style = next.text_style,
-			}
-			if .HasNoClip not_in next.flags {
-				// This assumption that we want to clip nearly every widget has
-				// performance implications because the backend renderer cannot
-				// batch together many draw calls since here each draw has a
-				// separate clip rect
-				cmd.clip = next.clip
-			}
-			append(&ci.queued, cmd)
-		}
-
-	}
-
-	slice.reverse(ci.queued[:])
-
-	return ci
-}
-
-cmd_iterator_destroy :: proc(ci: ^Command_Iterator) {
-	delete(ci.queued)
+cmd_iterator_create :: proc(c: ^Context) -> Command_Iterator {
+	return Command_Iterator{idx = 0, cmds = &c.draw_cmds}
 }
 
 cmd_iterator_next :: proc(ci: ^Command_Iterator) -> Command {
-	if len(ci.queued) <= 0 {
+	if ci.idx == len(ci.cmds) {
 		return Command_Done{}
 	}
-	return pop(&ci.queued)
+	cmd := ci.cmds[ci.idx]
+	ci.idx += 1
+	return cmd
 }
 
 Command :: union {

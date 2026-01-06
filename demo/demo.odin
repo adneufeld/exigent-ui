@@ -122,11 +122,7 @@ main :: proc() {
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.DARKBLUE)
 
-		ci := ui.cmd_iterator_create(
-			ctx,
-			ui.DEFAULT_CMDS_PER_WIDGET_HEURISTIC,
-			context.temp_allocator,
-		)
+		ci := ui.cmd_iterator_create(ctx)
 		draw_ui: for true {
 			cmd := ui.cmd_iterator_next(&ci)
 			switch c in cmd {
@@ -135,16 +131,16 @@ main :: proc() {
 			case ui.Command_Rect:
 				rl_color := rl.Color{c.color.r, c.color.g, c.color.b, c.alpha}
 
-				clip, ok := c.clip.?
-				if ok {
-					rl.BeginScissorMode(
-						i32(clip.x),
-						i32(clip.y),
-						i32(clip.width),
-						i32(clip.height),
-					)
-				}
-				defer if ok do rl.EndScissorMode()
+				// clip, ok := c.clip.?
+				// if ok {
+				// 	rl.BeginScissorMode(
+				// 		i32(clip.x),
+				// 		i32(clip.y),
+				// 		i32(clip.width),
+				// 		i32(clip.height),
+				// 	)
+				// }
+				// defer if ok do rl.EndScissorMode()
 
 				switch c.border.type {
 				case .None:
@@ -166,17 +162,18 @@ main :: proc() {
 					)
 				}
 			case ui.Command_Text:
-				clip, ok := c.clip.?
-				if ok {
-					rl.BeginScissorMode(
-						i32(clip.x),
-						i32(clip.y),
-						i32(clip.width),
-						i32(clip.height),
-					)
-				}
-				defer if ok do rl.EndScissorMode()
+				// clip, ok := c.clip.?
+				// if ok {
+				// 	rl.BeginScissorMode(
+				// 		i32(clip.x),
+				// 		i32(clip.y),
+				// 		i32(clip.width),
+				// 		i32(clip.height),
+				// 	)
+				// }
+				// defer if ok do rl.EndScissorMode()
 
+				c2 := c
 				cstr := strings.clone_to_cstring(c.text, context.temp_allocator)
 				f := cast(^rl.Font)c.style.font
 				rcolor := rl.Color{c.style.color.r, c.style.color.g, c.style.color.b, 255}

@@ -3,7 +3,6 @@ package exigent
 import "base:runtime"
 import "core:hash"
 import "core:mem"
-import "core:strings"
 
 Widget :: struct {
 	id:          Widget_ID,
@@ -12,11 +11,11 @@ Widget :: struct {
 	children:    [dynamic]^Widget,
 	rect, clip:  Rect,
 	style:       Widget_Style,
-	text:        string,
-	text_pos:    [2]f32,
-	text_style:  Text_Style,
+	// text:        string,
+	// text_pos:    [2]f32,
+	// text_style:  Text_Style,
 	alpha:       u8,
-	flags:       bit_set[Widget_Flags],
+	// flags:       bit_set[Widget_Flags],
 	interaction: Widget_Interaction,
 }
 
@@ -27,8 +26,6 @@ widget_begin :: proc(
 	caller: runtime.Source_Code_Location,
 	sub_id: int = 0,
 ) {
-	c.num_widgets += 1
-
 	w := new(Widget, c.temp_allocator)
 	id := widget_id_push(c, caller, sub_id)
 	w.id = id
@@ -104,82 +101,20 @@ widget_id_pop :: proc(c: ^Context) {
 	pop(&c.id_stack)
 }
 
-Widget_Flags :: enum {
-	DrawBackground,
-	DrawBorder,
-	HasHover,
-	HasActive,
-	HasNoClip,
-}
+// Widget_Flags :: enum {
+// 	DrawBackground,
+// 	DrawBorder,
+// 	HasHover,
+// 	HasActive,
+// 	HasNoClip,
+// }
 
-widget_flags :: proc(c: ^Context, flags: bit_set[Widget_Flags]) {
-	c.widget_curr.flags += flags
-}
+// widget_flags :: proc(c: ^Context, flags: bit_set[Widget_Flags]) {
+// 	c.widget_curr.flags += flags
+// }
 
 widget_get_rect :: proc(c: ^Context) -> Rect {
 	return c.widget_curr.rect
-}
-
-widget_text :: proc {
-	widget_text_aligned,
-	widget_text_at_offset,
-}
-
-Text_Align_H :: enum {
-	Left,
-	Center,
-	Right,
-}
-
-Text_Align_V :: enum {
-	Top,
-	Center,
-	Bottom,
-}
-
-widget_text_aligned :: proc(
-	c: ^Context,
-	text: string,
-	h_align: Text_Align_H,
-	v_align: Text_Align_V,
-) {
-	assert(!strings.contains(text, "\n"), "multiline text not supported yet")
-	text := text_clip(c, text, c.widget_curr.rect)
-
-	text_style := text_style_curr(c)
-	r := widget_get_rect(c)
-	tw := text_width(c, text)
-
-	offset: [2]f32
-
-	switch h_align {
-	case .Left:
-		offset.x = 0
-	case .Center:
-		offset.x = (r.width - f32(tw)) * 0.5
-	case .Right:
-		offset.x = r.width - f32(tw)
-	}
-
-	switch v_align {
-	case .Top:
-		offset.y = 0
-	case .Center:
-		offset.y = (r.height - text_style.line_height) * 0.5
-	case .Bottom:
-		offset.y = r.height - text_style.line_height
-	}
-
-	widget_text_at_offset(c, text, offset)
-}
-
-// Widgets support a single text string and will be automatically split on newlines
-widget_text_at_offset :: proc(c: ^Context, text: string, offset: [2]f32) {
-	assert(!strings.contains(text, "\n"), "multiline text not supported yet")
-
-	c.widget_curr.text = text
-	c.widget_curr.text_pos = [2]f32{c.widget_curr.rect.x, c.widget_curr.rect.y} + offset
-	c.widget_curr.text_style = text_style_curr(c)
 }
 
 // pick the top-most widget at the mouse_pos
@@ -222,6 +157,10 @@ widget_interaction :: proc(c: ^Context, w: ^Widget) {
 		w.interaction.pressed = input_is_mouse_pressed(c, .Left)
 		w.interaction.clicked = input_is_mouse_clicked(c, .Left)
 
+		if w.interaction.down {
+			c.active_widget_id = hovered_widget_id
+		}
+
 		if w.interaction.clicked {
 			c.active_text_buffer = nil
 		}
@@ -248,12 +187,12 @@ root :: proc(c: ^Context, caller := #caller_location, sub_id: int = 0) {
 	widget_end(c)
 }
 
-Widget_Type_PANEL := widget_register(Widget_Style{base = Style{background = Color{128, 128, 128}}})
-panel :: proc(c: ^Context, r: Rect, caller := #caller_location, sub_id: int = 0) {
-	widget_begin(c, Widget_Type_PANEL, r, caller, sub_id)
-	widget_flags(c, {.DrawBackground})
-	widget_end(c)
-}
+// Widget_Type_PANEL := widget_register(Widget_Style{base = Style{background = Color{128, 128, 128}}})
+// panel :: proc(c: ^Context, r: Rect, caller := #caller_location, sub_id: int = 0) {
+// 	widget_begin(c, Widget_Type_PANEL, r, caller, sub_id)
+// 	draw_background(c)
+// 	widget_end(c)
+// }
 
 Widget_Type_BUTTON := widget_register(
 	Widget_Style {
@@ -281,8 +220,8 @@ button :: proc(
 	widget_begin(c, Widget_Type_BUTTON, r, caller, sub_id)
 	defer widget_end(c)
 
-	widget_flags(c, {.DrawBackground, .DrawBorder, .HasHover, .HasActive})
-	widget_text(c, text, .Center, .Center)
+	draw_background(c)
+	draw_text(c, text, .Center, .Center)
 
 	return c.widget_curr.interaction
 }
@@ -298,7 +237,7 @@ label :: proc(
 	sub_id: int = 0,
 ) {
 	widget_begin(c, Widget_Type_LABEL, r, caller, sub_id)
-	widget_text(c, text, h_align, v_align)
+	draw_text(c, text, h_align, v_align)
 	widget_end(c)
 }
 
@@ -324,12 +263,34 @@ text_input :: proc(
 	widget_begin(c, Widget_Type_TEXT_INPUT, r, caller, sub_id)
 	defer widget_end(c)
 
-	widget_flags(c, {.DrawBackground, .DrawBorder})
-	widget_text(c, text_buffer_to_string(text_buf), [2]f32{5, 5})
+	draw_background(c)
+	draw_text(c, text_buffer_to_string(text_buf), [2]f32{5, 5})
 
 	if c.widget_curr.interaction.clicked {
 		c.active_text_buffer = text_buf
 	}
+
+	return c.widget_curr.interaction
+}
+
+ScrollBox :: struct {
+	y_offset: int,
+}
+
+Widget_Type_SCROLLBOX := widget_register(Widget_Style{})
+scrollbox :: proc(
+	c: ^Context,
+	r: Rect,
+	caller := #caller_location,
+	sub_id: int = 0,
+) -> Widget_Interaction {
+	widget_begin(c, Widget_Type_SCROLLBOX, r, caller, sub_id)
+	defer widget_end(c)
+
+	// widget_flags(c, {.DrawBackground})
+
+	content := r
+	scroll_container := rect_cut_right(&content, 20)
 
 	return c.widget_curr.interaction
 }

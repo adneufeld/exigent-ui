@@ -9,15 +9,17 @@ Widget_Style :: struct {
 }
 
 Style :: struct {
-	background: Color,
-	border:     Border_Style,
+	background:      Color,
+	border:          Border_Style,
+	scrollbar_width: f32,
+	scrollbar_alpha: u8,
 }
 
 Color :: [4]u8
 
 Border_Style :: struct {
 	type:      Border_Type,
-	thickness: int,
+	thickness: f32,
 	color:     Color,
 }
 
@@ -51,6 +53,17 @@ color_blend :: proc(c1, c2: Color, t: f32) -> (cb: Color) {
 	cb.b = u8(f32(c1.b) + (f32(c2.b) - f32(c1.b)) * t + 0.5)
 	cb.a = u8(f32(c1.a) + (f32(c2.a) - f32(c1.a)) * t + 0.5)
 	return cb
+}
+
+// Calculate a color that would have visible contrast with c Color by blending
+// white or black based on perceived luminance
+color_contrast :: proc(c: Color) -> Color {
+	luminance := (f32(c.r) * 0.2126 + f32(c.g) * 0.7152 + f32(c.b) * 0.0722) / 255.0
+	overlay := Color{0, 0, 0, c.a}
+	if luminance < 0.5 do overlay = Color{255, 255, 255, c.a}
+	distance_from_edge := abs(luminance - 0.5)
+	t := 0.25 + (0.20 * (1.0 - (distance_from_edge * 2.0)))
+	return color_blend(c, overlay, t)
 }
 
 style_push :: proc(c: ^Context, type: Widget_Type, style: Widget_Style) {

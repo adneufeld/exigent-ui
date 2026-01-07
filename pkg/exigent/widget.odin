@@ -269,7 +269,7 @@ Scrollbox :: struct {
 Widget_Type_SCROLLBOX := widget_register(
 	Widget_Style {
 		base = Style {
-			background = Color{120, 120, 120, 255},
+			background = Color{0, 0, 0, 255},
 			border = Border_Style{type = .Square, thickness = 2, color = Color{0, 0, 0, 255}},
 		},
 	},
@@ -293,11 +293,11 @@ scrollbox_begin :: proc(
 }
 
 SCROLL_STEP_PX_DEFAULT :: 20
+SCROLLBAR_WIDTH_PX_DEFAULT :: 20
+SCROLLBAR_ALPHA_DEFAULT: u8 = 185
 
 scrollbox_end :: proc(c: ^Context) {
 	scrollbox := pop(&c.scrollbox_stack)
-
-	// TODO: move the scroll bar color and alpha to the Style struct
 
 	// only do scrollbox when content extends beyond scrollbox height
 	if scrollbox._layout.h < 0 {
@@ -320,26 +320,25 @@ scrollbox_end :: proc(c: ^Context) {
 		}
 
 		// draw scrollbar track
-		rect := scrollbox._w.rect
-		scrollbar := rect_cut_right(&rect, 20)
 		style := style_curr(c)
+		rect := scrollbox._w.rect
+		scrollbar_width := style.scrollbar_width
+		if scrollbar_width <= 0 {
+			scrollbar_width = SCROLLBAR_WIDTH_PX_DEFAULT
+		}
+		scrollbar := rect_cut_right(&rect, scrollbar_width)
 		scrollbar_track := scrollbar
+		scrollbar_alpha := style.scrollbar_alpha
+		if scrollbar_alpha <= 0 {
+			scrollbar_alpha = SCROLLBAR_ALPHA_DEFAULT
+		}
 		faded_color := style.background
-		faded_color.a = 185
-		draw_rect(
-			c,
-			scrollbar_track,
-			faded_color,
-			Border_Style {
-				type = .Square,
-				thickness = 1,
-				color = color_blend(style.border.color, Color{255, 255, 255, 255}, 0.3),
-			},
-		)
+		faded_color.a = scrollbar_alpha
+		draw_rect(c, scrollbar_track, faded_color)
 
 		// draw scrollbar "thumb"
 		thumb_height := scrollbox_height * scrollbox_height / content_height
-		thumb_height = math.max(thumb_height, 20) // min thumb size
+		thumb_height = math.max(thumb_height, scrollbar_width, 20) // min thumb size
 		pct := -scrollbox.y_offset / (content_height - scrollbox_height)
 		pct = math.clamp(pct, 0, 1)
 		thumb := Rect {
@@ -349,9 +348,8 @@ scrollbox_end :: proc(c: ^Context) {
 			w = scrollbar.w,
 		}
 		thumb = rect_inset(thumb, 2)
-		// TODO: hover/active colors for click-interaction with thumb
-		faded_color = color_blend(style.background, Color{0, 0, 0, 255}, 0.3)
-		faded_color.a = 185
+		faded_color = color_contrast(style.background)
+		faded_color.a = scrollbar_alpha
 		draw_rect(c, thumb, faded_color)
 	}
 

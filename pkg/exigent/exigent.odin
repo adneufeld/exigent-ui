@@ -1,8 +1,6 @@
 package exigent
 
-import "core:container/queue"
 import "core:mem"
-import "core:slice"
 
 Context :: struct {
 	screen_width, screen_height: int,

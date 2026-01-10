@@ -60,6 +60,7 @@ begin :: proc(c: ^Context, screen_width, screen_height: int) {
 	c.screen_height = screen_height
 	c.widget_root = nil
 	c.active_widget_id = nil
+	clear(&c.draw_cmds)
 	clear(&c.scrollbox_stack)
 	c.widget_stack = make([dynamic]^Widget, c.temp_allocator)
 	c.style_stack = make([dynamic]Widget_Type_Style, c.temp_allocator)
@@ -147,4 +148,3 @@ Command_Clip :: struct {
 }
 
 Command_Unclip :: struct {}
-

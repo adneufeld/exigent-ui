@@ -157,6 +157,7 @@ sprite_packer_iter_next :: proc(spi: ^Sprite_Packer_Iterator) -> (at: Atlas_Text
 
 // TODO: Implement a more efficient texture packing solution. This one creates
 // one texture for each closest higher power-of-two sized images.
+// See https://github.com/nothings/stb/blob/master/stb_rect_pack.h
 
 // Simple atlas (spritesheet) solution using fixed size slots per texture
 Atlas :: struct {

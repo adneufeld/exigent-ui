@@ -171,6 +171,7 @@ input_is_mouse_clicked :: proc(c: ^Context, btn: Mouse_Button) -> bool {
 }
 
 input_scroll :: proc(c: ^Context, delta: f32) {
+	if delta == 0 do return
 	c.input_curr.scroll_delta = delta
 }
 
@@ -217,4 +218,3 @@ input_char :: proc(c: ^Context, r: rune) {
 	bytes, len := utf8.encode_rune(r)
 	text_buffer_append(c.active_text_buffer, bytes[:len])
 }
-

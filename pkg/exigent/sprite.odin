@@ -249,8 +249,8 @@ image_convert_from_image :: proc(in_img: ^image.Image, allocator := context.allo
 		image.alpha_add_if_missing(in_img)
 	}
 	if in_img.depth != 8 {
-		panic("only 8 bit images supported for now")
-		// TODO convert
+		panic("only 8 bit images and colors supported for now")
+		// TODO support more image formats
 	}
 
 	// Now copy those bytes into our Image struct

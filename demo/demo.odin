@@ -108,7 +108,7 @@ input :: proc(ctx: ^ui.Context) {
 
 	// Input - Mouse
 	ui.input_mouse_pos(ctx, rl.GetMousePosition())
-	// TODO: This could be optimized
+	ui.input_scroll(ctx, rl.GetMouseWheelMove())
 	if rl.IsMouseButtonDown(.LEFT) {
 		ui.input_mouse_down(ctx, .Left)
 	}
@@ -126,12 +126,6 @@ input :: proc(ctx: ^ui.Context) {
 	}
 	if rl.IsMouseButtonReleased(.MIDDLE) {
 		ui.input_mouse_up(ctx, .Middle)
-	}
-
-	// Input - scroll
-	scroll_delta := rl.GetMouseWheelMove()
-	if scroll_delta != 0 {
-		ui.input_scroll(ctx, scroll_delta)
 	}
 }
 

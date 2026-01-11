@@ -108,6 +108,7 @@ draw_text_ex :: proc(c: ^Context, text: string, offset: [2]f32) {
 	)
 }
 
+// Draw a sprite, scaling it to the dst Rect location and size
 draw_sprite :: proc(c: ^Context, sprite: Sprite, dst: Rect) {
 	r := c.widget_curr.rect
 	append(&c.draw_cmds, Command_Sprite{sprite = sprite, rect = dst})

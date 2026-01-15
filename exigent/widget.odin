@@ -189,7 +189,7 @@ Widget_Type_BUTTON := widget_register(
 			border = Border_Style{type = .Square, thickness = 2, color = Color{0, 0, 0, 255}},
 		},
 		active = Style {
-			background = Color{50, 50, 50, 255},
+			background = Color{90, 90, 90, 255},
 			border = Border_Style{type = .Square, thickness = 2, color = Color{0, 0, 0, 255}},
 		},
 	},
@@ -203,6 +203,12 @@ button :: proc(
 ) -> Widget_Interaction {
 	widget_begin(c, Widget_Type_BUTTON, r, caller, sub_id)
 	defer widget_end(c)
+
+	// Tiny press animation
+	if c.widget_curr.interaction.down {
+		c.widget_curr.rect.x += 1
+		c.widget_curr.rect.y += 1
+	}
 
 	draw_background(c)
 	draw_text(c, text, .Center, .Center)

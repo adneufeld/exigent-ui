@@ -10,7 +10,7 @@ draw_rect :: proc(c: ^Context, r: Rect, color: Color, border := Border_Style{}) 
 }
 
 draw_background :: proc(c: ^Context) {
-	style := style_curr(c)
+	style := c.widget_curr.style
 	draw_rect(c, c.widget_curr.rect, style.background, style.border)
 }
 

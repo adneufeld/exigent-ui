@@ -126,9 +126,9 @@ Command_Done :: struct {}
 
 Command_Rect :: struct {
 	rect:   Rect,
-	clip:   Maybe(Rect),
+	clip:   Maybe(Rect), // includes space for the border outside rect
 	color:  Color,
-	border: Border_Style,
+	border: Border_Style, // border must be drawn outside the rect
 }
 
 Command_Text :: struct {

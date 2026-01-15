@@ -11,8 +11,9 @@ Widget :: struct {
 	type:        Widget_Type,
 	parent:      ^Widget,
 	children:    [dynamic]^Widget,
-	rect, clip:  Rect,
-	style:       Widget_Style,
+	rect:        Rect, // The inner size of the widget
+	clip:        Rect, // The outer size (with borders) of the widget, used for clipping
+	style:       Style,
 	interaction: Widget_Interaction,
 }
 
@@ -32,9 +33,19 @@ widget_begin :: proc(
 	id := widget_create_id(c, caller, sub_id)
 	w.id = id
 	w.type = type
+
+	widget_style := style_get(c, type)
+	style := widget_style.base
+	if w.id == c.active_widget_id && widget_style.active != {} {
+		style = widget_style.active
+	} else if w.id == c.hovered_widget_id && widget_style.hover != {} {
+		style = widget_style.hover
+	}
+	w.style = style
+
 	w.rect = rect
-	w.clip = rect
-	w.style = style_get(c, type)
+	w.clip = rect_inset(rect, -style.border.thickness)
+
 	w.children.allocator = c.temp_allocator
 
 	if c.widget_curr != nil {
@@ -42,7 +53,8 @@ widget_begin :: proc(
 		append(&c.widget_stack, c.widget_curr)
 		c.widget_curr = nil
 		w.parent = parent
-		w.clip = rect_intersect(w.parent.clip, w.clip)
+		// child must within within parent.rect so it doesn't overlap borders
+		w.clip = rect_intersect(parent.rect, w.clip)
 		append(&w.parent.children, w)
 	}
 
@@ -312,7 +324,7 @@ scrollbox_end :: proc(c: ^Context) {
 		}
 
 		// draw scrollbar track
-		style := style_curr(c)
+		style := c.widget_curr.style
 		rect := scrollbox._w.rect
 		scrollbar_width := style.scrollbar_width
 		if scrollbar_width <= 0 {

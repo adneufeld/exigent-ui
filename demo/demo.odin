@@ -207,7 +207,12 @@ my_draw :: proc(ctx: ^ui.Context, texture_map: map[ui.Atlas_Handle]rl.Texture2D)
 					rl_color,
 				)
 				rl.DrawRectangleLinesEx(
-					rl.Rectangle{c.rect.x, c.rect.y, c.rect.w, c.rect.h},
+					rl.Rectangle {
+						c.rect.x - c.border.thickness,
+						c.rect.y - c.border.thickness,
+						c.rect.w + c.border.thickness * 2,
+						c.rect.h + c.border.thickness * 2,
+					},
 					f32(c.border.thickness),
 					rl.Color(c.border.color),
 				)

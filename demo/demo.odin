@@ -5,6 +5,7 @@ import "base:runtime"
 import "core:fmt"
 import "core:image"
 import "core:image/png"
+import "core:log"
 import "core:math"
 import "core:strings"
 import rl "vendor:raylib"
@@ -275,13 +276,20 @@ preload_sprites :: proc() -> (map[Sprite_Type]ui.Sprite, map[ui.Atlas_Handle]rl.
 	icons[.Crop_Icon] = "demo/res/icons/symbol crop resize.png"
 
 	for type, fp in icons {
-		img, err := png.load_from_file(fp, png.Options{})
-		if err != nil {
-			panic(fmt.tprintf("failed to load %s, err=%v", fp, err))
+		img, load_err := png.load_from_file(fp, png.Options{})
+		if load_err != nil {
+			panic(fmt.tprintf("failed to load %s, err=%v", fp, load_err))
 		}
-		ui_img := ui.image_convert_from_image(img)
+		ui_img, convert_err := ui.image_convert_from_image(img)
+		if convert_err != nil {
+			log.errorf("failed to convert img, err=%v", convert_err)
+		}
 		image.destroy(img)
-		sprite_map[type] = ui.sprite_packer_add(&sp, ui_img)
+		sprite, add_err := ui.sprite_packer_add(&sp, ui_img)
+		if add_err != nil {
+			log.errorf("failed to add sprite, err=%v", add_err)
+		}
+		sprite_map[type] = sprite
 	}
 
 	it := ui.sprite_packer_make_iter(&sp)

@@ -4,20 +4,31 @@ import "core:image"
 import "core:math"
 import "core:mem"
 
+
+// Sprite is really a handle for an image which has been added to a texture
+// atlas which has been uploaded to the GPU.
+Sprite :: struct {
+	atlas:         Atlas_Handle,
+	uv_min:        [2]f32, // normalized to (0,1) inclusive across the whole texture
+	uv_max:        [2]f32, // normalized to (0,1) inclusive across the whole texture
+	width, height: int, // size of the original image in pixels
+}
+
 /*
+Used on program init to build one or more packed texture atlases which
+can then be uploaded to the GPU. When completed, all textures are destroyed
+and unloaded to save memory.
 
 # Example usage
 
-// 1. Initialization
+```
 packer: Sprite_Packer
 sprite_packer_init(&packer)
 defer sprite_packer_destroy(&packer)
 
-// 2. Packing
 sprite_a := sprite_packer_add(&packer, img_a)
 sprite_b := sprite_packer_add(&packer, img_b)
 
-// 3. GPU Upload
 texture_mapping := make(map[Atlas_Handle]GPU_Texture_Handle)
 it := sprite_packer_make_iter(&packer)
 for {
@@ -26,21 +37,8 @@ for {
 	gpu_tex_id := upload_to_gpu(tex.handle, tex.texture)
 	texture_mapping[tex.handle] = gpu_tex_id
 }
-
-// 4. Start the main loop and use the sprites as args to image functions
-
+```
 */
-
-Sprite :: struct {
-	atlas:         Atlas_Handle,
-	uv_min:        [2]f32, // normalized to (0,1) inclusive across the whole texture
-	uv_max:        [2]f32, // normalized to (0,1) inclusive across the whole texture
-	width, height: int, // size of the original image in pixels
-}
-
-// Used on program init to build one or more packed texture atlases which
-// can then be uploaded to the GPU. When completed, all textures are destroyed
-// and unloaded to save memory.
 Sprite_Packer :: struct {
 	next_handle: int,
 	entries:     [dynamic]Sprite_Packer_Entry,
@@ -77,7 +75,7 @@ sprite_packer_destroy :: proc(sp: ^Sprite_Packer) {
 // number of images and the size of the images this will produce one or more
 // atlas (spritesheet) textures of combined images. The provided image can be
 // destroyed/freed afterwards.
-sprite_packer_add :: proc(sp: ^Sprite_Packer, i: Image) -> Sprite {
+sprite_packer_add :: proc(sp: ^Sprite_Packer, i: Image) -> (sprite: Sprite, err: Atlas_Error) {
 	context.allocator = sp.allocator
 
 	required_width := i.width + 2 * sp.min_padding
@@ -96,13 +94,8 @@ sprite_packer_add :: proc(sp: ^Sprite_Packer, i: Image) -> Sprite {
 	if target_atlas == nil {
 		handle := Atlas_Handle(sp.next_handle)
 		sp.next_handle += 1
-		append(
-			&sp.entries,
-			Sprite_Packer_Entry {
-				handle = handle,
-				atlas = atlas_create(handle, sp.atlas_size, target_slot_size),
-			},
-		)
+		atlas := atlas_create(handle, sp.atlas_size, target_slot_size) or_return
+		append(&sp.entries, Sprite_Packer_Entry{handle = handle, atlas = atlas})
 		target_atlas = &sp.entries[len(sp.entries) - 1].atlas
 	}
 
@@ -119,12 +112,13 @@ sprite_packer_add :: proc(sp: ^Sprite_Packer, i: Image) -> Sprite {
 	}
 
 	return Sprite {
-		atlas = target_atlas.handle,
-		uv_min = uv_min,
-		uv_max = uv_max,
-		width = i.width,
-		height = i.height,
-	}
+			atlas = target_atlas.handle,
+			uv_min = uv_min,
+			uv_max = uv_max,
+			width = i.width,
+			height = i.height,
+		},
+		nil
 }
 
 Sprite_Packer_Iterator :: struct {
@@ -156,7 +150,8 @@ sprite_packer_iter_next :: proc(spi: ^Sprite_Packer_Iterator) -> (at: Atlas_Text
 }
 
 // TODO: Implement a more efficient texture packing solution. This one creates
-// one texture for each closest higher power-of-two sized images.
+// one texture for each closest higher power-of-two sized images and packs
+// images into those fixed size slots.
 // See https://github.com/nothings/stb/blob/master/stb_rect_pack.h
 
 // Simple atlas (spritesheet) solution using fixed size slots per texture
@@ -172,28 +167,36 @@ Atlas :: struct {
 
 Atlas_Handle :: distinct int
 
+Atlas_Error :: enum {
+	None,
+	// The slot size for atlas_create must evenly divide into the atlas_size (use powers of 2)
+	Invalid_Slot_Size,
+}
+
 atlas_create :: proc(
 	handle: Atlas_Handle,
 	atlas_size: int,
 	slot_size: int,
 	min_padding := 1,
 	allocator := context.allocator,
-) -> Atlas {
-	assert(
-		atlas_size % slot_size == 0,
-		"slot_size must evenly divide into atlas_size (use powers of 2)",
-	)
+) -> (
+	Atlas,
+	Atlas_Error,
+) {
+	if atlas_size % slot_size != 0 do return Atlas{}, .Invalid_Slot_Size
+
 	slots_per_row := atlas_size / slot_size
 	num_rows := atlas_size / slot_size
 	return Atlas {
-		handle = handle,
-		texture = image_create_empty(atlas_size, atlas_size, allocator),
-		slot_size = slot_size,
-		slots = make([]Sprite, slots_per_row * num_rows),
-		free_slot = 0,
-		min_padding = min_padding,
-		allocator = allocator,
-	}
+			handle = handle,
+			texture = image_create_empty(atlas_size, atlas_size, allocator),
+			slot_size = slot_size,
+			slots = make([]Sprite, slots_per_row * num_rows),
+			free_slot = 0,
+			min_padding = min_padding,
+			allocator = allocator,
+		},
+		nil
 }
 
 atlas_destroy :: proc(a: ^Atlas) {
@@ -223,8 +226,6 @@ atlas_append :: proc(a: ^Atlas, i: Image, min_padding: int) -> [2]int {
 }
 
 atlas_slot_origin :: proc(a: Atlas, slot: int) -> [2]int {
-	assert(slot >= 0 && slot < len(a.slots), "invalid slot index")
-
 	slots_width := a.texture.width / a.slot_size
 	x := slot % slots_width
 	y := slot / slots_width
@@ -236,6 +237,12 @@ Image :: struct {
 	width, height: int,
 }
 
+Image_Error :: enum {
+	None,
+	// Only images with 8-bit color (depth=8) supported for conversion so far
+	Unsupported_Image_Format,
+}
+
 image_create_empty :: proc(width, height: int, allocator := context.allocator) -> Image {
 	return Image {
 		pixels = make([dynamic]Color, width * height, allocator),
@@ -244,14 +251,19 @@ image_create_empty :: proc(width, height: int, allocator := context.allocator) -
 	}
 }
 
-image_convert_from_image :: proc(in_img: ^image.Image, allocator := context.allocator) -> Image {
+image_convert_from_image :: proc(
+	in_img: ^image.Image,
+	allocator := context.allocator,
+) -> (
+	Image,
+	Image_Error,
+) {
 	// Ensure the incoming image has the correct byte layout
 	if in_img.channels < 4 {
 		image.alpha_add_if_missing(in_img)
 	}
 	if in_img.depth != 8 {
-		panic("only 8 bit images and colors supported for now")
-		// TODO support more image formats
+		return Image{}, .Unsupported_Image_Format
 	}
 
 	// Now copy those bytes into our Image struct
@@ -260,7 +272,7 @@ image_convert_from_image :: proc(in_img: ^image.Image, allocator := context.allo
 	assert(len(img.pixels) == len(in_pixels), "unexpected image byte format")
 	copy(img.pixels[:], in_pixels)
 
-	return img
+	return img, nil
 }
 
 image_destroy :: proc(i: Image) {

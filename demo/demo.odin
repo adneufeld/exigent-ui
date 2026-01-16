@@ -16,6 +16,7 @@ HEIGHT :: 600
 State :: struct {
 	input1:  ui.Text_Input,
 	scroll1: ui.Scrollbox,
+	scroll2: ui.Scrollbox,
 }
 
 state := State{}
@@ -136,42 +137,80 @@ update :: proc(ctx: ^ui.Context, sprite_map: map[Sprite_Type]ui.Sprite) {
 
 	r := ui.Rect{0, 0, WIDTH, HEIGHT}
 
-	scrollbox := ui.rect_cut_top(&r, 300)
-	scrollbox = ui.rect_inset(scrollbox, ui.Inset{20, 90, 20, 90})
-	ui.scrollbox_begin(ctx, &scrollbox, &state.scroll1)
+	panel_r := ui.rect_inset(r, 50)
+	ui.panel(ctx, panel_r)
 
-	scroll_line1 := ui.rect_take_top(&scrollbox, 100)
-	scroll_line1 = ui.rect_inset(scroll_line1, 10)
-	if (ui.button(ctx, scroll_line1, "One").released) {
-		fmt.println("Scroll btn 1 clicked")
-	}
+	labels_r := panel_r
+	widgets_r := ui.rect_cut_right(&labels_r, panel_r.w / 2)
 
-	scroll_line2 := ui.rect_take_top(&scrollbox, 100)
-	scroll_line2 = ui.rect_inset(scroll_line2, 10)
-	if (ui.button(ctx, scroll_line2, "Two").released) {
-		fmt.println("Scroll btn 2 clicked")
-	}
+	line1_label_r := ui.rect_cut_top(&labels_r, 80)
+	ui.label(ctx, line1_label_r, "Button:", .Center, .Center)
+	line1_widget_r := ui.rect_cut_top(&widgets_r, 80)
+	line1_widget_r = ui.rect_inset(line1_widget_r, 10)
+	ui.button(ctx, line1_widget_r, "Click me!")
 
-	scroll_line3 := ui.rect_take_top(&scrollbox, 100)
-	scroll_line3 = ui.rect_inset(scroll_line3, 10)
-	if (ui.button(ctx, scroll_line3, "Three").released) {
-		fmt.println("Scroll btn 3 clicked")
-	}
+	line2_label_r := ui.rect_cut_top(&labels_r, 80)
+	ui.label(ctx, line2_label_r, "Text Input:", .Center, .Center)
+	line2_widget_r := ui.rect_cut_top(&widgets_r, 80)
+	line2_widget_r = ui.rect_inset(line2_widget_r, 10)
+	text_style := ui.text_style_curr(ctx)
+	inner_height := text_style.size + 10
+	top_bot_inset := (line2_widget_r.h - inner_height) / 2
+	line2_widget_r = ui.rect_inset(
+		line2_widget_r,
+		ui.Inset{Top = top_bot_inset, Bottom = top_bot_inset},
+	)
+	ui.text_input(ctx, line2_widget_r, &state.input1)
 
+	line3_label_r := ui.rect_cut_top(&labels_r, 100)
+	line3_label_r = ui.rect_inset(line3_label_r, ui.Inset{Top = 10})
+	ui.label(ctx, line3_label_r, "Scrollbox (no scroll):", .Center, .Top)
+	line3_widget_r := ui.rect_cut_top(&widgets_r, 120)
+	line3_widget_r = ui.rect_inset(line3_widget_r, 10)
+	ui.scrollbox_begin(ctx, &line3_widget_r, &state.scroll1)
+	scroll_line1 := ui.rect_take_top(&line3_widget_r, 50)
+	ui.label(ctx, scroll_line1, "Line 1", .Center, .Center)
+	scroll_line2 := ui.rect_take_top(&line3_widget_r, 50)
+	ui.label(ctx, scroll_line2, "Line 2", .Center, .Center)
 	ui.scrollbox_end(ctx)
 
-	line1 := ui.rect_cut_top(&r, 100)
-	line1 = ui.rect_inset(line1, ui.Inset{20, 90, 20, 90})
-	input_label := ui.rect_cut_left(&line1, line1.w / 2)
-	ui.label(ctx, input_label, "Input: ")
-	input := line1
-	ui.text_input(ctx, input, &state.input1)
+	line4_label_r := ui.rect_cut_top(&labels_r, 100)
+	line4_label_r = ui.rect_inset(line4_label_r, ui.Inset{Top = 10})
+	ui.label(ctx, line4_label_r, "Scrollbox (scroll):", .Center, .Top)
+	line4_widget_r := ui.rect_cut_top(&widgets_r, 120)
+	line4_widget_r = ui.rect_inset(line4_widget_r, 10)
+	ui.scrollbox_begin(ctx, &line4_widget_r, &state.scroll2)
+	button_style := ui.style_get(ctx, ui.Widget_Type_BUTTON)
+	button_style.base.background = ui.Color{140, 140, 140, 255}
+	ui.style_push(ctx, ui.Widget_Type_BUTTON, button_style)
+	scroll2_line1 := ui.rect_take_top(&line4_widget_r, 50)
+	scroll2_line1 = ui.rect_inset(
+		scroll2_line1,
+		ui.Inset{Top = 5, Bottom = 5, Left = 5, Right = 25},
+	)
+	ui.button(ctx, scroll2_line1, "Button 1")
+	scroll2_line2 := ui.rect_take_top(&line4_widget_r, 50)
+	scroll2_line2 = ui.rect_inset(
+		scroll2_line2,
+		ui.Inset{Top = 5, Bottom = 5, Left = 5, Right = 25},
+	)
+	ui.button(ctx, scroll2_line2, "Button 2")
+	scroll2_line3 := ui.rect_take_top(&line4_widget_r, 50)
+	scroll2_line3 = ui.rect_inset(
+		scroll2_line3,
+		ui.Inset{Top = 5, Bottom = 5, Left = 5, Right = 25},
+	)
+	ui.button(ctx, scroll2_line3, "Button 3")
+	ui.style_pop(ctx)
+	ui.scrollbox_end(ctx)
 
-	line2 := ui.rect_cut_top(&r, 100)
-	line2 = ui.rect_inset(line2, ui.Inset{20, 90, 20, 90})
-	icon_width := math.floor(line2.w / f32(len(sprite_map)))
+	line5_label_r := ui.rect_cut_top(&labels_r, 100)
+	ui.label(ctx, line5_label_r, "Images:", .Center, .Center)
+	line5_widget_r := ui.rect_cut_top(&widgets_r, 80)
+	line5_widget_r = ui.rect_inset(line5_widget_r, 10)
+	icon_width := math.floor(line5_widget_r.w / f32(len(sprite_map)))
 	for st, sp in sprite_map {
-		icon := ui.rect_cut_left(&line2, icon_width)
+		icon := ui.rect_cut_left(&line5_widget_r, icon_width)
 		ui.draw_sprite(ctx, sp, icon)
 	}
 }

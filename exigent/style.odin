@@ -74,7 +74,7 @@ style_push :: proc(c: ^Context, type: Widget_Type, style: Widget_Style) {
 }
 
 style_pop :: proc(c: ^Context) {
-	assert(len(c.style_stack) > 1)
+	assert(len(c.style_stack) > 0)
 	pop(&c.style_stack)
 }
 

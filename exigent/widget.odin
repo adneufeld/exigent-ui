@@ -185,6 +185,21 @@ root :: proc(c: ^Context, caller := #caller_location, sub_id: int = 0) {
 	widget_end(c)
 }
 
+Widget_Type_PANEL := widget_register(
+	Widget_Style {
+		base = Style {
+			background = Color{80, 80, 80, 255},
+			border = Border_Style{type = .Square, thickness = 2, color = Color{0, 0, 0, 255}},
+		},
+	},
+)
+panel :: proc(c: ^Context, r: Rect, caller := #caller_location, sub_id: int = 0) {
+	widget_begin(c, Widget_Type_PANEL, r, caller, sub_id)
+	draw_background(c)
+	widget_end(c)
+}
+
+
 Widget_Type_BUTTON := widget_register(
 	Widget_Style {
 		base = Style {
@@ -306,7 +321,7 @@ Scrollbox :: struct {
 Widget_Type_SCROLLBOX := widget_register(
 	Widget_Style {
 		base = Style {
-			background = Color{50, 50, 50, 255},
+			background = Color{100, 100, 100, 255},
 			border = Border_Style{type = .Square, thickness = 2, color = Color{0, 0, 0, 255}},
 		},
 	},

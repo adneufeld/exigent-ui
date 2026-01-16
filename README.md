@@ -7,3 +7,7 @@ For layout this package uses the RectCut strategy which enables UI widgets to cr
 Rendering uses a Command queue design where widgets are iterated starting from the root following a Breadth-First Search (BFS) pattern. For each widget, one or more Commands to draw are pushed into the queue. The queue can then be iterated and drawn by any graphical engine. Currently the `demo` uses Raylib. 
 
 The name `exigent` means "requiring immediate action".
+
+## Sample
+
+![UI Sample](docs/ui-sample.png)

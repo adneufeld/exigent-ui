@@ -1,4 +1,4 @@
-# exigent - Odin Immediate Mode UI (early WIP)
+# exigent - Odin Immediate Mode UI (WIP/Experimental)
 
 This is a simple immediate mode UI written in Odin as an exploratory exercise in recreational programming. 
 

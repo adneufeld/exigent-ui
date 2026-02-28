@@ -20,20 +20,23 @@ Text_Style_Registry :: struct {
 	initialized:   bool,
 	styles:        map[Text_Style_Type]Text_Style,
 	default_style: Text_Style,
+	width_data:    rawptr,
 	width_fn:      Text_Style_Width_Fn,
 }
 
-Text_Style_Width_Fn :: proc(style: Text_Style, text: string) -> f32
+Text_Style_Width_Fn :: proc(data: rawptr, style: Text_Style, text: string) -> f32
 
 reg: Text_Style_Registry
 
 text_style_init :: proc(
 	type: Text_Style_Type,
 	default_style: Text_Style,
+	width_data: rawptr,
 	width_fn: Text_Style_Width_Fn,
 ) {
 	reg.initialized = true
 	reg.default_style = default_style
+	reg.width_data = width_data
 	reg.width_fn = width_fn
 }
 
@@ -81,7 +84,7 @@ text_style_curr :: proc(c: ^Context) -> Text_Style {
 
 text_width :: proc(c: ^Context, text: string) -> f32 {
 	text_style := text_style_curr(c)
-	return reg.width_fn(text_style, text)
+	return reg.width_fn(reg.width_data, text_style, text)
 }
 
 // Clips the text to ensure it fits within the Rect by removing characters and adding ellipses.

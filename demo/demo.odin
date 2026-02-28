@@ -1,6 +1,6 @@
 package demo
 
-import ui "../exigent"
+import ui ".."
 import "base:runtime"
 import "core:fmt"
 import "core:image"
@@ -35,7 +35,7 @@ main :: proc() {
 
 	// Initialize UI related context and defaults
 	ctx := &ui.Context{}
-	ui.context_init(ctx)
+	ui.init(ctx)
 	ui.text_style_init(
 		default_text_style_type,
 		ui.Text_Style {
@@ -46,6 +46,7 @@ main :: proc() {
 			font = &default_font,
 			color = ui.Color{0, 0, 0, 255},
 		},
+		nil,
 		measure_width,
 	)
 
@@ -71,7 +72,7 @@ main :: proc() {
 		free_all(context.temp_allocator)
 	}
 
-	ui.context_destroy(ctx)
+	ui.destroy(ctx)
 	rl.CloseWindow()
 }
 
@@ -211,7 +212,7 @@ update :: proc(ctx: ^ui.Context, sprite_map: map[Sprite_Type]ui.Sprite) {
 	icon_width := math.floor(line5_widget_r.w / f32(len(sprite_map)))
 	for st, sp in sprite_map {
 		icon := ui.rect_cut_left(&line5_widget_r, icon_width)
-		ui.draw_sprite(ctx, sp, icon)
+		ui.sprite(ctx, sp, icon)
 	}
 }
 
@@ -283,7 +284,7 @@ my_draw :: proc(ctx: ^ui.Context, texture_map: map[ui.Atlas_Handle]rl.Texture2D)
 	rl.DrawFPS(10, 10)
 }
 
-measure_width :: proc(style: ui.Text_Style, text: string) -> f32 {
+measure_width :: proc(data: rawptr, style: ui.Text_Style, text: string) -> f32 {
 	cstr := strings.clone_to_cstring(text, context.temp_allocator)
 	f := cast(^rl.Font)style.font
 	m := rl.MeasureTextEx(f^, cstr, style.size, style.spacing)

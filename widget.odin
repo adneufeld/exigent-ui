@@ -195,7 +195,7 @@ Widget_Type_PANEL := widget_register(
 )
 panel :: proc(c: ^Context, r: Rect, caller := #caller_location, sub_id: int = 0) {
 	widget_begin(c, Widget_Type_PANEL, r, caller, sub_id)
-	draw_background(c)
+	background(c)
 	widget_end(c)
 }
 
@@ -219,7 +219,7 @@ Widget_Type_BUTTON := widget_register(
 button :: proc(
 	c: ^Context,
 	r: Rect,
-	text: string,
+	txt: string,
 	caller := #caller_location,
 	sub_id: int = 0,
 ) -> Widget_Interaction {
@@ -232,8 +232,8 @@ button :: proc(
 		c.widget_curr.rect.y += 1
 	}
 
-	draw_background(c)
-	draw_text(c, text, .Center, .Center)
+	background(c)
+	text(c, txt, .Center, .Center)
 
 	return c.widget_curr.interaction
 }
@@ -242,14 +242,14 @@ Widget_Type_LABEL := widget_register(Widget_Style{})
 label :: proc(
 	c: ^Context,
 	r: Rect,
-	text: string,
+	txt: string,
 	h_align: Text_Align_H = .Left,
 	v_align: Text_Align_V = .Top,
 	caller := #caller_location,
 	sub_id: int = 0,
 ) {
 	widget_begin(c, Widget_Type_LABEL, r, caller, sub_id)
-	draw_text(c, text, h_align, v_align)
+	text(c, txt, h_align, v_align)
 	widget_end(c)
 }
 
@@ -285,21 +285,21 @@ text_input :: proc(
 	}
 
 	offset := [2]f32{5, 5}
-	text := text_buffer_to_string(&data.text)
+	txt := text_buffer_to_string(&data.text)
 	blink_rate := data.blink_rate if data.blink_rate > 0 else BLINK_RATE_DEFAULT
 	elapsed := time.diff(data._focused_ts, time.now())
 	is_active := data == c.active_text_input
 	show_cursor := is_active && (elapsed % blink_rate) < (blink_rate / 2)
 
-	draw_background(c)
-	if len(text) > 0 do draw_text(c, text, offset)
+	background(c)
+	if len(txt) > 0 do text(c, txt, offset)
 	if show_cursor {
-		current_text_width := text_width(c, text)
+		current_text_width := text_width(c, txt)
 		x := r.x + offset.x + current_text_width + 4
 		text_style := text_style_curr(c)
 		y_start := r.y + offset.y
 		y_end := r.y + offset.y + text_style.size
-		draw_line_v(c, y_start, y_end, x, 2, text_style.color)
+		line_v(c, y_start, y_end, x, 2, text_style.color)
 	}
 
 	return c.widget_curr.interaction
@@ -339,7 +339,7 @@ scrollbox_begin :: proc(
 
 	data._w = c.widget_curr
 	data._layout = r
-	draw_background(c)
+	background(c)
 
 	append(&c.scrollbox_stack, data)
 }
@@ -373,12 +373,12 @@ scrollbox_end :: proc(c: ^Context) {
 
 		// draw scrollbar track
 		style := c.widget_curr.style
-		rect := scrollbox._w.rect
+		r := scrollbox._w.rect
 		scrollbar_width := style.scrollbar_width
 		if scrollbar_width <= 0 {
 			scrollbar_width = SCROLLBAR_WIDTH_PX_DEFAULT
 		}
-		scrollbar := rect_cut_right(&rect, scrollbar_width)
+		scrollbar := rect_cut_right(&r, scrollbar_width)
 		scrollbar_track := scrollbar
 		scrollbar_alpha := style.scrollbar_alpha
 		if scrollbar_alpha <= 0 {
@@ -386,7 +386,7 @@ scrollbox_end :: proc(c: ^Context) {
 		}
 		faded_color := style.background
 		faded_color.a = scrollbar_alpha
-		draw_rect(c, scrollbar_track, faded_color)
+		rect(c, scrollbar_track, faded_color)
 
 		// draw scrollbar "thumb"
 		thumb_height := scrollbox_height * scrollbox_height / content_height
@@ -402,7 +402,7 @@ scrollbox_end :: proc(c: ^Context) {
 		thumb = rect_inset(thumb, 2)
 		faded_color = color_contrast(style.background)
 		faded_color.a = scrollbar_alpha
-		draw_rect(c, thumb, faded_color)
+		rect(c, thumb, faded_color)
 	}
 
 	// cleanup

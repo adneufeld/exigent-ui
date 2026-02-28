@@ -5,12 +5,12 @@ import "core:testing"
 
 fixture_context_create :: proc() -> ^Context {
 	c := new(Context)
-	context_init(c)
+	init(c)
 	return c
 }
 
 fixture_context_delete :: proc(c: ^Context) {
-	context_destroy(c)
+	destroy(c)
 	free(c)
 }
 

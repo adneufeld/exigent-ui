@@ -2,20 +2,20 @@ package exigent
 
 import "core:strings"
 
-draw_rect :: proc(c: ^Context, r: Rect, color: Color, border := Border_Style{}) {
+rect :: proc(c: ^Context, r: Rect, color: Color, border := Border_Style{}) {
 	append(
-		&c.draw_cmds,
+		&c.cmds,
 		Command_Rect{rect = r, color = color, border = border, clip = c.widget_curr.clip},
 	)
 }
 
-draw_background :: proc(c: ^Context) {
+background :: proc(c: ^Context) {
 	style := c.widget_curr.style
-	draw_rect(c, c.widget_curr.rect, style.background, style.border)
+	rect(c, c.widget_curr.rect, style.background, style.border)
 }
 
 // Draw a horizontal line
-draw_line_h :: proc(c: ^Context, x_start, x_end, y: f32, thickness: f32, color: Color) {
+line_h :: proc(c: ^Context, x_start, x_end, y: f32, thickness: f32, color: Color) {
 	x_min := min(x_start, x_end)
 	w := abs(x_end - x_start)
 	line := Rect {
@@ -24,11 +24,11 @@ draw_line_h :: proc(c: ^Context, x_start, x_end, y: f32, thickness: f32, color: 
 		w = w,
 		h = thickness,
 	}
-	draw_rect(c, line, color)
+	rect(c, line, color)
 }
 
 // Draw a vertical line
-draw_line_v :: proc(c: ^Context, y_start, y_end, x: f32, thickness: f32, color: Color) {
+line_v :: proc(c: ^Context, y_start, y_end, x: f32, thickness: f32, color: Color) {
 	y_min := min(y_start, y_end)
 	h := abs(y_end - y_start)
 	line := Rect {
@@ -37,12 +37,12 @@ draw_line_v :: proc(c: ^Context, y_start, y_end, x: f32, thickness: f32, color: 
 		w = thickness,
 		h = h,
 	}
-	draw_rect(c, line, color)
+	rect(c, line, color)
 }
 
-draw_text :: proc {
-	draw_text_aligned,
-	draw_text_ex,
+text :: proc {
+	text_aligned,
+	text_ex,
 }
 
 Text_Align_H :: enum {
@@ -57,12 +57,7 @@ Text_Align_V :: enum {
 	Bottom,
 }
 
-draw_text_aligned :: proc(
-	c: ^Context,
-	text: string,
-	h_align: Text_Align_H,
-	v_align: Text_Align_V,
-) {
+text_aligned :: proc(c: ^Context, text: string, h_align: Text_Align_H, v_align: Text_Align_V) {
 	assert(!strings.contains(text, "\n"), "multiline text not supported yet")
 	text := text_clip(c, text, c.widget_curr.rect)
 
@@ -90,15 +85,15 @@ draw_text_aligned :: proc(
 		offset.y = r.h - text_style.line_height
 	}
 
-	draw_text_ex(c, text, offset)
+	text_ex(c, text, offset)
 }
 
 // Widgets support a single text string and will be automatically split on newlines
-draw_text_ex :: proc(c: ^Context, text: string, offset: [2]f32) {
+text_ex :: proc(c: ^Context, text: string, offset: [2]f32) {
 	assert(!strings.contains(text, "\n"), "multiline text not supported yet")
 	r := c.widget_curr.rect
 	append(
-		&c.draw_cmds,
+		&c.cmds,
 		Command_Text {
 			text = text,
 			pos = [2]f32{r.x, r.y} + offset,
@@ -109,17 +104,17 @@ draw_text_ex :: proc(c: ^Context, text: string, offset: [2]f32) {
 }
 
 // Draw a sprite, scaling it to the dst Rect location and size
-draw_sprite :: proc(c: ^Context, sprite: Sprite, dst: Rect) {
+sprite :: proc(c: ^Context, sprite: Sprite, dst: Rect) {
 	r := c.widget_curr.rect
-	append(&c.draw_cmds, Command_Sprite{sprite = sprite, rect = dst})
+	append(&c.cmds, Command_Sprite{sprite = sprite, rect = dst})
 }
 
 @(private)
 clip :: proc(c: ^Context, r: Rect) {
-	append(&c.draw_cmds, Command_Clip{rect = r})
+	append(&c.cmds, Command_Clip{rect = r})
 }
 
 @(private)
 unclip :: proc(c: ^Context) {
-	append(&c.draw_cmds, Command_Unclip{})
+	append(&c.cmds, Command_Unclip{})
 }

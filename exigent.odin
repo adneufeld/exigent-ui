@@ -17,7 +17,7 @@ Context :: struct {
 	// tried this and it creates a bunch of headaches for style push/pop because
 	// now text style can be zero in a bunch of awkward places.
 	text_style_stack:            [dynamic]Text_Style_Type,
-	draw_cmds:                   [dynamic]Command,
+	cmds:                        [dynamic]Command,
 	scrollbox_stack:             [dynamic]^Scrollbox,
 	// temp data
 	temp_allocator:              mem.Allocator,
@@ -26,7 +26,7 @@ Context :: struct {
 	active_text_input:           ^Text_Input,
 }
 
-context_init :: proc(
+init :: proc(
 	c: ^Context,
 	atlas_size: int = 4096,
 	perm_allocator := context.allocator,
@@ -39,14 +39,14 @@ context_init :: proc(
 	c.widget_stack.allocator = c.perm_allocator
 	c.style_stack.allocator = c.perm_allocator
 	c.text_style_stack.allocator = c.perm_allocator
-	c.draw_cmds.allocator = c.perm_allocator
+	c.cmds.allocator = c.perm_allocator
 	c.scrollbox_stack.allocator = c.perm_allocator
 	c.input_prev = input_create(allocator = c.perm_allocator)
 	c.input_curr = input_create(allocator = c.perm_allocator)
 	c.style_default = DEFAULT_STYLES
 }
 
-context_destroy :: proc(c: ^Context) {
+destroy :: proc(c: ^Context) {
 	context.allocator = c.perm_allocator
 	input_destroy(c.input_prev)
 	input_destroy(c.input_curr)
@@ -57,7 +57,7 @@ begin :: proc(c: ^Context, screen_width, screen_height: int) {
 	c.screen_height = screen_height
 	c.widget_root = nil
 	c.active_widget_id = nil
-	clear(&c.draw_cmds)
+	clear(&c.cmds)
 	clear(&c.scrollbox_stack)
 	clear(&c.widget_stack)
 	clear(&c.style_stack)
@@ -103,7 +103,7 @@ Command_Iterator :: struct {
 }
 
 cmd_iterator_create :: proc(c: ^Context) -> Command_Iterator {
-	return Command_Iterator{idx = 0, cmds = &c.draw_cmds}
+	return Command_Iterator{idx = 0, cmds = &c.cmds}
 }
 
 cmd_iterator_next :: proc(ci: ^Command_Iterator) -> Command {

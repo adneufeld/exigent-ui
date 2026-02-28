@@ -1,6 +1,6 @@
 package demo
 
-import ui "../exigent"
+import ui ".."
 import rl "vendor:raylib"
 
 RL_TO_UI := #partial #sparse[rl.KeyboardKey]ui.Key {

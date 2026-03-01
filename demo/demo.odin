@@ -223,11 +223,8 @@ my_draw :: proc(ctx: ^ui.Context, texture_map: map[ui.Atlas_Handle]rl.Texture2D)
 	rl.ClearBackground(rl.WHITE)
 
 	ci := ui.cmd_iterator_create(ctx)
-	draw_ui: for {
-		cmd := ui.cmd_iterator_next(&ci)
+	for cmd in ui.cmd_iterator_next(&ci) {
 		switch c in cmd {
-		case ui.Command_Done:
-			break draw_ui
 		case ui.Command_Clip:
 			rl.BeginScissorMode(i32(c.rect.x), i32(c.rect.y), i32(c.rect.w), i32(c.rect.h))
 		case ui.Command_Unclip:

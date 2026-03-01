@@ -106,25 +106,22 @@ cmd_iterator_create :: proc(c: ^Context) -> Command_Iterator {
 	return Command_Iterator{idx = 0, cmds = &c.cmds}
 }
 
-cmd_iterator_next :: proc(ci: ^Command_Iterator) -> Command {
+cmd_iterator_next :: proc(ci: ^Command_Iterator) -> (Command, bool) {
 	if ci.idx == len(ci.cmds) {
-		return Command_Done{}
+		return Command{}, false
 	}
 	cmd := ci.cmds[ci.idx]
 	ci.idx += 1
-	return cmd
+	return cmd, true
 }
 
 Command :: union {
-	Command_Done,
 	Command_Rect,
 	Command_Text,
 	Command_Clip,
 	Command_Unclip,
 	Command_Sprite,
 }
-
-Command_Done :: struct {}
 
 Command_Rect :: struct {
 	rect:   Rect,

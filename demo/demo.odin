@@ -81,9 +81,7 @@ input :: proc(ctx: ^ui.Context) {
 
 	// Input - Check for released keys
 	it := ui.input_key_down_iterator(ctx)
-	for {
-		key, ok := ui.input_key_down_iterator_next(&it)
-		if !ok do break
+	for key in ui.input_key_down_iterator_next(&it) {
 		rl_key := ui_to_rl_key(key)
 		if rl_key != .KEY_NULL && rl.IsKeyReleased(rl_key) {
 			ui.input_key_up(ctx, key)

@@ -35,7 +35,9 @@ widget_begin :: proc(
 	w.id = id
 	w.type = type
 
-	w.interaction = widget_interaction(c, id)
+	if type != Widget_Type_ROOT {
+		w.interaction = widget_interaction(c, id)
+	}
 	widget_style := style_get(c, type)
 	style := widget_style.base
 	if w.id == c.active_widget_id && widget_style.active != {} {

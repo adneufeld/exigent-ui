@@ -52,6 +52,15 @@ destroy :: proc(c: ^Context) {
 	input_destroy(c.input_curr)
 }
 
+is_pointer_captured :: proc(c: ^Context) -> bool {
+	_, ok := c.hovered_widget_id.?
+	return ok
+}
+
+is_keyboard_captured :: proc(c: ^Context) -> bool {
+	return c.active_text_input != nil
+}
+
 begin :: proc(c: ^Context, screen_width, screen_height: int) {
 	c.screen_width = screen_width
 	c.screen_height = screen_height

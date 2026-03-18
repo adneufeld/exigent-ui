@@ -50,7 +50,7 @@ widget_begin :: proc(
 	w.rect = rect
 	w.clip = rect_inset(rect, -style.border.thickness)
 
-	w.children.allocator = c.temp_allocator
+	w.children = make([dynamic]^Widget, c.temp_allocator)
 
 	if c.widget_curr != nil {
 		parent := c.widget_curr

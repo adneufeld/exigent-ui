@@ -36,11 +36,11 @@ init :: proc(
 
 	c.temp_allocator = temp_allocator
 	c.perm_allocator = perm_allocator
-	c.widget_stack.allocator = c.perm_allocator
-	c.style_stack.allocator = c.perm_allocator
-	c.text_style_stack.allocator = c.perm_allocator
-	c.cmds.allocator = c.perm_allocator
-	c.scrollbox_stack.allocator = c.perm_allocator
+	c.widget_stack = make([dynamic]^Widget, c.perm_allocator)
+	c.style_stack = make([dynamic]Widget_Type_Style, c.perm_allocator)
+	c.text_style_stack = make([dynamic]Text_Style_Type, c.perm_allocator)
+	c.cmds = make([dynamic]Command, c.perm_allocator)
+	c.scrollbox_stack = make([dynamic]^Scrollbox, c.perm_allocator)
 	c.input_prev = input_create(allocator = c.perm_allocator)
 	c.input_curr = input_create(allocator = c.perm_allocator)
 	c.style_default = DEFAULT_STYLES
